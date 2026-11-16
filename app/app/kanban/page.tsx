@@ -63,7 +63,8 @@ export default async function KanbanPickerPage({
   // quadro), porque é nela que se cria funil, se importa planilha e se veem os
   // arquivados. Com dois ou mais funis, a lista volta a abrir sozinha.
   const { lista } = await searchParams;
-  if (funis.length === 1 && lista === undefined) redirect(`/app/pipelines/${funis[0].id}`);
+  const unico = funis.length === 1 ? funis[0] : undefined;
+  if (unico && lista === undefined) redirect(`/app/pipelines/${unico.id}`);
   const podeGerenciar = ROLE_RANK[activeOrg.role] >= ROLE_RANK.manager;
   // O arquivo só vai para quem pode mexer nele: tirar do arquivo e excluir são
   // `requireRole("manager")` nas rotas, e mostrar a gaveta a quem receberia 403

@@ -96,8 +96,9 @@ export function etiquetasDasEtapas(regras: readonly RegraParaAFaixa[]): Map<stri
     const acoes = Array.isArray(regra.actions) ? (regra.actions as unknown[]) : [];
     for (const acao of acoes) {
       const validas = etiquetasDoContatoNaAcao(acao);
-      if (validas.length === 1) {
-        mapa.set(etapaId, validas[0]);
+      const unica = validas[0];
+      if (validas.length === 1 && unica !== undefined) {
+        mapa.set(etapaId, unica);
         break;
       }
     }
@@ -146,12 +147,12 @@ export function passosDaEtapa(
   etiquetasDasRegras: readonly string[],
 ): Pick<PassoDaFaixa, "etiqueta" | "rotulo">[] {
   const base = NUMERADA.exec(etiquetaDaEtapa.trim());
-  if (!base || Number(base[1]) !== 1) return [];
+  if (!base || base[2] === undefined || Number(base[1]) !== 1) return [];
   const resto = chave(base[2]);
   const porNumero = new Map<number, string>();
   for (const etiqueta of [etiquetaDaEtapa.trim(), ...etiquetasDasRegras]) {
     const m = NUMERADA.exec(etiqueta.trim());
-    if (!m || chave(m[2]) !== resto) continue;
+    if (!m || m[2] === undefined || chave(m[2]) !== resto) continue;
     const numero = Number(m[1]);
     if (numero < 1 || porNumero.has(numero)) continue;
     porNumero.set(numero, etiqueta.trim());
@@ -220,8 +221,9 @@ export function escolhaAtiva(
       return { etapaId: etapa.id, passo: null };
     }
   }
-  if (lista.length !== 1) return null;
-  const escolhida = chave(lista[0]);
+  const unica = lista[0];
+  if (lista.length !== 1 || unica === undefined) return null;
+  const escolhida = chave(unica);
   for (const etapa of etapas) {
     const passo = etapa.passos.find((p) => chave(p.etiqueta) === escolhida);
     if (passo) return { etapaId: etapa.id, passo: passo.etiqueta };
