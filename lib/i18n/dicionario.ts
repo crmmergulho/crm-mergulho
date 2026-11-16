@@ -7217,6 +7217,7 @@ export const DICIONARIO: Traducoes = {
   "Clique numa caixa para configurar. Na paleta, clicar põe a caixa logo depois da selecionada, já ligada.": { es: "Haz clic en una caja para configurarla. En la paleta, hacer clic pone la caja justo después de la seleccionada, ya conectada." },
   "Do cliente (ele não respondeu)": { es: "Del cliente (no respondió)" },
   "De qualquer um": { es: "De cualquiera" },
+  "Cliente esperando resposta (falou por último)": { es: "Cliente esperando respuesta (habló último)" },
   "Da equipe (nós não falamos)": { es: "Del equipo (no hablamos)" },
   "Filtro": { es: "Filtro" },
   "As condições ficam numa caixa só, e ela já está no desenho.": { es: "Las condiciones van en una sola caja, y ya está en el diseño." },

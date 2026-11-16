@@ -47,9 +47,16 @@ export const GATILHO_ETAPA_PARADA = "lead.stage_stale";
  *
  * `da_equipe` = a equipe não manda mensagem (última saída velha);
  * `do_cliente` = o cliente não responde (última entrada velha);
- * `qualquer` = ninguém falou (última mensagem de qualquer lado velha).
+ * `qualquer` = ninguém falou (última mensagem de qualquer lado velha);
+ * `cliente_esperando` = o cliente falou por ÚLTIMO e a equipe ainda não
+ * respondeu (personalização da Mergulho, nov/2026). As outras três medem só uma
+ * coluna e não sabem quem falou por último: "a equipe não fala há 1 dia"
+ * também dispara quando é o cliente que sumiu depois da nossa resposta — o
+ * alarme falso que esta direção existe para não dar. A âncora é a última
+ * mensagem do cliente numa conversa aberta em que ela é mais nova que a nossa
+ * (`ultimaEsperaDoCliente`); sem conversa assim, não há episódio.
  */
-export const DIRECOES_DO_SILENCIO = ["da_equipe", "do_cliente", "qualquer"] as const;
+export const DIRECOES_DO_SILENCIO = ["da_equipe", "do_cliente", "qualquer", "cliente_esperando"] as const;
 export type DirecaoDoSilencio = (typeof DIRECOES_DO_SILENCIO)[number];
 
 /** Dez anos de silêncio é dedo no teclado, não regra. Abaixo de 1 dia é flood. */
@@ -138,9 +145,44 @@ export function configDaEtapaParada(bruto: unknown): ConfigDaEtapaParada | null 
 export function colunaDaDirecao(direcao: DirecaoDoSilencio): string {
   return direcao === "da_equipe"
     ? "last_outbound_at"
-    : direcao === "do_cliente"
+    : direcao === "do_cliente" || direcao === "cliente_esperando"
       ? "last_inbound_at"
       : "last_message_at";
+}
+
+/** O rótulo de cada direção, como o editor de regras mostra (passa por `t()`). */
+export function rotuloDaDirecao(direcao: DirecaoDoSilencio): string {
+  return direcao === "da_equipe"
+    ? "Da equipe (nós não falamos)"
+    : direcao === "do_cliente"
+      ? "Do cliente (ele não respondeu)"
+      : direcao === "cliente_esperando"
+        ? "Cliente esperando resposta (falou por último)"
+        : "De qualquer um";
+}
+
+/** O que `ultimaEsperaDoCliente` lê de cada conversa (aberta) do contato. */
+export interface ConversaParaEspera {
+  last_inbound_at: string | null;
+  last_outbound_at: string | null;
+}
+
+/**
+ * Desde quando o cliente espera resposta: a última mensagem DELE entre as
+ * conversas em que ele falou por último (a nossa última saída é mais velha, ou
+ * não existe). `null` = ninguém esperando. Quem chama já filtrou as conversas
+ * encerradas — uma conversa fechada não é cliente esperando.
+ */
+export function ultimaEsperaDoCliente(conversas: readonly ConversaParaEspera[]): string | null {
+  let maior: number | null = null;
+  for (const conversa of conversas) {
+    const entrada = Date.parse(conversa.last_inbound_at ?? "");
+    if (Number.isNaN(entrada)) continue;
+    const saida = Date.parse(conversa.last_outbound_at ?? "");
+    if (!Number.isNaN(saida) && saida >= entrada) continue;
+    if (maior === null || entrada > maior) maior = entrada;
+  }
+  return maior === null ? null : new Date(maior).toISOString();
 }
 
 /**

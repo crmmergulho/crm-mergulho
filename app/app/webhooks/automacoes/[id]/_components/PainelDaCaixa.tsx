@@ -23,6 +23,7 @@ import {
   DIRECOES_DO_SILENCIO,
   GATILHO_ETAPA_PARADA,
   GATILHO_SILENCIO,
+  rotuloDaDirecao,
   type DirecaoDoSilencio,
 } from "@/lib/automation/gatilhos-de-tempo";
 import {
@@ -263,13 +264,7 @@ export function PainelDoGatilho({
                 <SelectContent>
                   {DIRECOES_DO_SILENCIO.map((d) => (
                     <SelectItem key={d} value={d}>
-                      {t(
-                        d === "da_equipe"
-                          ? "Da equipe (nós não falamos)"
-                          : d === "do_cliente"
-                            ? "Do cliente (ele não respondeu)"
-                            : "De qualquer um",
-                      )}
+                      {t(rotuloDaDirecao(d))}
                     </SelectItem>
                   ))}
                 </SelectContent>

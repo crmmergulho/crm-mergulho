@@ -11,6 +11,8 @@ import {
   configDaEtapaParada,
   configDoSilencio,
   naoDisparadosTemporais,
+  rotuloDaDirecao,
+  ultimaEsperaDoCliente,
 } from "./gatilhos-de-tempo";
 
 /**
@@ -36,7 +38,7 @@ describe("a configuração dos dois gatilhos", () => {
     });
   });
 
-  it("aceita as três direções e recusa qualquer outra", () => {
+  it("aceita as quatro direções e recusa qualquer outra", () => {
     for (const direcao of DIRECOES_DO_SILENCIO) {
       expect(configDoSilencio({ dias: 3, direcao })?.direcao).toBe(direcao);
     }
@@ -69,6 +71,7 @@ describe("a configuração dos dois gatilhos", () => {
     expect(colunaDaDirecao("da_equipe")).toBe("last_outbound_at");
     expect(colunaDaDirecao("do_cliente")).toBe("last_inbound_at");
     expect(colunaDaDirecao("qualquer")).toBe("last_message_at");
+    expect(colunaDaDirecao("cliente_esperando")).toBe("last_inbound_at");
   });
 });
 
@@ -124,5 +127,38 @@ describe("a trava: uma vez por episódio, e o rearme quando a âncora muda", () 
       { leadId: "l2", ancora: dias(9) },
     ];
     expect(naoDisparadosTemporais(candidatos, emitidos, "r1").map((c) => c.leadId)).toEqual(["l2"]);
+  });
+});
+
+describe("cliente esperando resposta (personalização da Mergulho)", () => {
+  it("é a última mensagem do cliente numa conversa em que ele falou por último", () => {
+    expect(
+      ultimaEsperaDoCliente([
+        { last_inbound_at: dias(2), last_outbound_at: dias(3) },
+        { last_inbound_at: dias(1), last_outbound_at: null },
+      ]),
+    ).toBe(dias(1));
+  });
+
+  it("não espera quando a nossa resposta é mais nova ou do mesmo instante", () => {
+    expect(ultimaEsperaDoCliente([{ last_inbound_at: dias(2), last_outbound_at: dias(1) }])).toBeNull();
+    expect(ultimaEsperaDoCliente([{ last_inbound_at: dias(2), last_outbound_at: dias(2) }])).toBeNull();
+  });
+
+  it("sem mensagem do cliente não há espera", () => {
+    expect(ultimaEsperaDoCliente([{ last_inbound_at: null, last_outbound_at: dias(1) }])).toBeNull();
+    expect(ultimaEsperaDoCliente([])).toBeNull();
+  });
+
+  it("a espera de 1 dia vira âncora pelo mesmo relógio das outras direções", () => {
+    const espera = ultimaEsperaDoCliente([{ last_inbound_at: dias(1.5), last_outbound_at: dias(3) }]);
+    expect(ancoraDoSilencio(espera, dias(10), AGORA, 1)).toBe(dias(1.5));
+    const recente = ultimaEsperaDoCliente([{ last_inbound_at: dias(0.5), last_outbound_at: dias(3) }]);
+    expect(ancoraDoSilencio(recente, dias(10), AGORA, 1)).toBeNull();
+  });
+
+  it("todas as direções têm rótulo", () => {
+    for (const direcao of DIRECOES_DO_SILENCIO) expect(rotuloDaDirecao(direcao)).not.toBe("");
+    expect(rotuloDaDirecao("cliente_esperando")).toMatch(/esperando/);
   });
 });

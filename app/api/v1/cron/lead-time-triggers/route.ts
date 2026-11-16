@@ -54,9 +54,12 @@ import {
   configDaEtapaParada,
   configDoSilencio,
   naoDisparadosTemporais,
+  ultimaEsperaDoCliente,
+  type ConversaParaEspera,
 } from "@/lib/automation/gatilhos-de-tempo";
 import { autorizaCron } from "@/lib/auth/cron-auth";
 import { logger } from "@/lib/logger";
+import { CONVERSATION_TERMINAL_STATUSES } from "@/lib/schemas";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -158,6 +161,9 @@ async function handle(req: NextRequest): Promise<Response> {
 
       if (silencio) {
         const coluna = colunaDaDirecao(silencio.direcao);
+        // Personalização da Mergulho: "cliente esperando resposta" precisa das
+        // DUAS colunas para saber quem falou por último, e só de conversa aberta.
+        const esperando = silencio.direcao === "cliente_esperando";
         let cursor: string | null = null;
 
         for (;;) {
@@ -190,12 +196,20 @@ async function handle(req: NextRequest): Promise<Response> {
           // As conversas da PÁGINA, não das páginas juntas: o `.in()` do
           // PostgREST é uma lista na URL, e junção de páginas num só `in()`
           // trocaria o teto por um URL que o banco recusa.
-          const { data: conversas, error: erroConversas } = await admin
+          let consultaDeConversas = admin
             .from("conversations")
-            .select(`contact_id, ${coluna}`)
+            .select(esperando ? "contact_id, last_inbound_at, last_outbound_at" : `contact_id, ${coluna}`)
             .eq("organization_id", org)
-            .in("contact_id", contatos)
-            .limit(1_000);
+            .in("contact_id", contatos);
+          // Conversa encerrada já teve desfecho: não é cliente esperando.
+          if (esperando) {
+            consultaDeConversas = consultaDeConversas.not(
+              "status",
+              "in",
+              `(${CONVERSATION_TERMINAL_STATUSES.join(",")})`,
+            );
+          }
+          const { data: conversas, error: erroConversas } = await consultaDeConversas.limit(1_000);
           if (erroConversas) {
             pular("consulta_falhou");
             falhouNaConsulta = true;
@@ -204,16 +218,37 @@ async function handle(req: NextRequest): Promise<Response> {
 
           // Um contato pode ter várias conversas: a âncora é a MAIS RECENTE delas.
           const ultimaPorContato = new Map<string, string>();
-          for (const conversa of (conversas ?? []) as unknown as Array<Record<string, unknown>>) {
-            const valor = conversa[coluna];
-            if (typeof valor !== "string" || !valor) continue;
-            const atual = ultimaPorContato.get(conversa.contact_id as string);
-            if (!atual || valor > atual) ultimaPorContato.set(conversa.contact_id as string, valor);
+          if (esperando) {
+            const porContato = new Map<string, ConversaParaEspera[]>();
+            for (const conversa of (conversas ?? []) as unknown as Array<Record<string, unknown>>) {
+              const contato = conversa.contact_id as string;
+              const lista = porContato.get(contato) ?? [];
+              lista.push({
+                last_inbound_at: typeof conversa.last_inbound_at === "string" ? conversa.last_inbound_at : null,
+                last_outbound_at: typeof conversa.last_outbound_at === "string" ? conversa.last_outbound_at : null,
+              });
+              porContato.set(contato, lista);
+            }
+            for (const [contato, lista] of porContato) {
+              const espera = ultimaEsperaDoCliente(lista);
+              if (espera) ultimaPorContato.set(contato, espera);
+            }
+          } else {
+            for (const conversa of (conversas ?? []) as unknown as Array<Record<string, unknown>>) {
+              const valor = conversa[coluna];
+              if (typeof valor !== "string" || !valor) continue;
+              const atual = ultimaPorContato.get(conversa.contact_id as string);
+              if (!atual || valor > atual) ultimaPorContato.set(conversa.contact_id as string, valor);
+            }
           }
 
           for (const lead of leads) {
+            const ultima = ultimaPorContato.get(lead.contact_id as string) ?? null;
+            // Sem cliente esperando não há episódio: aqui o nascimento do
+            // negócio NÃO serve de reserva, senão todo card de 1 dia viraria tarefa.
+            if (esperando && !ultima) continue;
             const ancora = ancoraDoSilencio(
-              ultimaPorContato.get(lead.contact_id as string) ?? null,
+              ultima,
               lead.created_at as string,
               agora,
               silencio.dias,

@@ -33,6 +33,7 @@ import {
   GATILHO_SILENCIO,
   configDaEtapaParada,
   configDoSilencio,
+  rotuloDaDirecao,
   type DirecaoDoSilencio,
 } from "@/lib/automation/gatilhos-de-tempo";
 import {
@@ -865,13 +866,7 @@ export function RuleEditor({ open, onOpenChange, rule }: Props) {
                         <SelectContent>
                           {DIRECOES_DO_SILENCIO.map((direcao) => (
                             <SelectItem key={direcao} value={direcao}>
-                              {t(
-                                direcao === "da_equipe"
-                                  ? "Da equipe (nós não falamos)"
-                                  : direcao === "do_cliente"
-                                    ? "Do cliente (ele não respondeu)"
-                                    : "De qualquer um",
-                              )}
+                              {t(rotuloDaDirecao(direcao))}
                             </SelectItem>
                           ))}
                         </SelectContent>
