@@ -12,6 +12,7 @@ import { X, Plus } from "@/lib/ui/icons";
 import { useUpdateContact } from "@/hooks/contacts/useUpdateContact";
 import { useEditLead } from "@/hooks/kanban/useUpdateLead";
 import { useContactTagVocabulary } from "@/hooks/contacts/useContactTagVocabulary";
+import { useEtiquetasManuais } from "@/hooks/contacts/useEtiquetasManuais";
 import { useDefinirCorDaEtiqueta } from "@/hooks/tags/useDefinirCorDaEtiqueta";
 import { chaveDaEtiqueta } from "@/lib/tags/cor-da-etiqueta";
 import { useAuth } from "@/hooks/auth/AuthProvider";
@@ -101,6 +102,11 @@ export function ContactTagsEditor(props: Props) {
   // uma requisição só.
   const { data: encontradas, isError: erroNaBusca } = useContactTagVocabulary(orgId, draft.trim());
   const vocabularyError = erroNoVocabulario || erroNaBusca;
+  // PERSONALIZAÇÃO DA MERGULHO (nov/2026): a lista inteira das etiquetas que se
+  // põem À MÃO, e as automáticas (as que as regras põem e tiram do contato), que
+  // não são sugeridas. Regra em `lib/contacts/etiquetas-manuais.ts`. Sem a
+  // resposta (carregando ou falhou), o editor segue exatamente como era.
+  const { data: etiquetasManuais } = useEtiquetasManuais(orgId);
   // A cor de quem JÁ está no contato vem do MESMO mapa que o chip usa (#2771):
   // uma leitura só, sem pergunta por tag, e o gatilho abre já com o tom atual
   // marcado — abrir a paleta de uma etiqueta colorida como se ela não tivesse
@@ -142,13 +148,20 @@ export function ContactTagsEditor(props: Props) {
   // #2855 — o que a busca no vocabulário inteiro achou entra DEPOIS das em uso:
   // a ordem por uso do #3180 continua valendo para o que já estava na lista.
   const conhecidas = normalizarTags([
+    ...(etiquetasManuais?.manuais ?? []),
     ...(vocabulary ?? []),
     ...(draft.trim() ? (encontradas ?? []) : []),
   ]);
+  // As automáticas saem só da SUGESTÃO: `conhecidas` continua inteira para
+  // `etiquetaParaGravar`/`opcaoDeCriar`, senão digitar "geladeira" ofereceria
+  // "Criar «geladeira»" — uma segunda grafia da etiqueta que a regra cuida.
+  const automaticas = new Set((etiquetasManuais?.automaticas ?? []).map(chaveDaEtiqueta));
   const suggestions = sugestoesDeEtiqueta({
-    conhecidas,
+    conhecidas: conhecidas.filter((tag) => !automaticas.has(chaveDaEtiqueta(tag))),
     selecionadas: tags,
     digitado: draft,
+    // Campo vazio com a lista manual carregada: TODAS, em vez das 8 primeiras.
+    limite: !draft.trim() && etiquetasManuais ? 60 : 8,
   });
 
   // #3180 (critério 3) — a etiqueta NOVA, a ÚLTIMA opção da lista e só quando

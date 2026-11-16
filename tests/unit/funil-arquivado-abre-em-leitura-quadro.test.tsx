@@ -106,9 +106,11 @@ describe("a página de um funil arquivado (#1298, item 1)", () => {
     const aviso = screen.getByTestId("funil-arquivado-aviso");
     expect(aviso.textContent).toMatch(/arquivado/i);
     expect(aviso.textContent).toMatch(/leitura/i);
+    // Personalização da Mergulho: com um funil só, `/app/kanban` abre o quadro;
+    // a lista (onde ficam os arquivados) mora em `?lista=1`.
     expect(screen.getByTestId("funil-arquivado-ir-para-funis")).toHaveAttribute(
       "href",
-      "/app/kanban",
+      "/app/kanban?lista=1",
     );
   });
 

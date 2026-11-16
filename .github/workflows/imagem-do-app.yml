@@ -1,0 +1,93 @@
+name: Imagem do app
+
+# Compila a imagem do app com as personalizações da Mergulho (faixa de etapas,
+# menu Funis, etiquetas manuais) e publica no GitHub Container Registry, privado.
+# A VPS só BAIXA a imagem pronta.
+#
+# Por que aqui e não na VPS: a VPS tem 2 vCPU / 8 GB e o compilador do Next
+# (Turbopack) passa de 5 GB; em 16/11/2026 a compilação na VPS, presa a 4 GB,
+# morreu por falta de memória depois de 47 minutos. O runner de repositório
+# privado tem 7 GB, por isso o passo de troca abaixo.
+#
+# Os workflows do projeto original (CI, e2e, release, relógio…) foram tirados
+# deste repositório: eles publicam em outro lugar, exigem segredos que não
+# existem aqui, e dois rodam por agenda.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: imagem-do-app
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  # A versão OFICIAL em que estas personalizações se apoiam. Ao trazer uma
+  # versão nova do projeto original, troque aqui também.
+  VERSAO_BASE: "1.109.0"
+
+jobs:
+  imagem:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - name: Liberar disco do runner
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          sudo docker image prune -af > /dev/null 2>&1 || true
+          df -h / /mnt
+
+      - name: Memória de troca de 10 GB (o Turbopack passa de 5 GB)
+        run: |
+          sudo swapoff -a || true
+          sudo rm -f /mnt/swapfile /swapfile || true
+          sudo fallocate -l 10G /mnt/swapfile
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          sudo swapon /mnt/swapfile
+          free -h
+
+      - uses: actions/checkout@v4
+
+      - name: Nome e versão da imagem
+        id: imagem
+        run: |
+          dono="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "nome=ghcr.io/${dono}/crm-mergulho-app" >> "$GITHUB_OUTPUT"
+          echo "versao=${VERSAO_BASE}-mergulho.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          build-args: |
+            APP_VERSION=${{ steps.imagem.outputs.versao }}
+          tags: |
+            ${{ steps.imagem.outputs.nome }}:${{ steps.imagem.outputs.versao }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Resumo
+        run: |
+          {
+            echo "### Imagem publicada"
+            echo
+            echo "\`${{ steps.imagem.outputs.nome }}:${{ steps.imagem.outputs.versao }}\`"
+            echo
+            echo "Na VPS: trocar \`APP_IMAGE\` no \`.env\` por esse endereço e subir só o app."
+          } >> "$GITHUB_STEP_SUMMARY"

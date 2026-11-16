@@ -334,13 +334,23 @@ export function PipelinePageClient({
           o leitor de tela perde o título da página. Trocar zera a query
           string: filtro de um funil aplicado no outro é resultado fantasma.
         */}
-        <h1
-          className={
-            podeTrocar ? "sr-only" : "min-w-0 truncate text-2xl font-semibold tracking-tight"
-          }
-        >
-          {nomeAtual}
-        </h1>
+        {podeTrocar ? (
+          <h1 className="sr-only">{nomeAtual}</h1>
+        ) : (
+          // PERSONALIZAÇÃO DA MERGULHO: com um funil só, o menu "Funis" abre este
+          // quadro direto (`app/app/kanban/page.tsx`); este link é a porta para a
+          // lista, onde se cria funil, se importa planilha e se veem os arquivados.
+          <div className="flex min-w-0 items-baseline gap-3">
+            <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight">{nomeAtual}</h1>
+            <Link
+              href="/app/kanban?lista=1"
+              className="shrink-0 text-sm text-muted-foreground underline-offset-4 hover:underline"
+              data-testid="ver-todos-os-funis"
+            >
+              {t("Todos os funis")}
+            </Link>
+          </div>
+        )}
         {podeTrocar && (
           <Select
             value={funis.some((f) => f.id === pipelineId) ? pipelineId : undefined}
@@ -467,7 +477,7 @@ export function PipelinePageClient({
           {t(
             "Este funil está arquivado: o quadro abre em leitura, e nada aqui grava até você tirá-lo do arquivo em Funis.",
           )}{" "}
-          <Link href="/app/kanban" className="underline" data-testid="funil-arquivado-ir-para-funis">
+          <Link href="/app/kanban?lista=1" className="underline" data-testid="funil-arquivado-ir-para-funis">
             {t("Funis")}
           </Link>
         </p>

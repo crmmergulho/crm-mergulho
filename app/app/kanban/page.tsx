@@ -30,7 +30,11 @@ export const metadata: Metadata = { title: "Funis" };
  * atalho de platform admin, que as rotas não concedem por padrão): mostrar um
  * botão que o servidor recusaria seria prometer o que não se cumpre.
  */
-export default async function KanbanPickerPage() {
+export default async function KanbanPickerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ lista?: string }>;
+}) {
   const user = await requireAuth();
   const activeOrg = await resolveActiveOrg(user);
   if (!activeOrg) redirect("/app");
@@ -53,6 +57,13 @@ export default async function KanbanPickerPage() {
 
   const todos = (data ?? []) as Array<FunilDaLista & { is_archived: boolean }>;
   const funis = todos.filter((f) => !f.is_archived);
+  // PERSONALIZAÇÃO DA MERGULHO (nov/2026): com UM funil só, o menu "Funis" abre
+  // direto o quadro dele — a lista seria um clique a mais, todo dia, para chegar
+  // ao mesmo lugar. A lista continua em `?lista=1` (o link "Todos os funis" do
+  // quadro), porque é nela que se cria funil, se importa planilha e se veem os
+  // arquivados. Com dois ou mais funis, a lista volta a abrir sozinha.
+  const { lista } = await searchParams;
+  if (funis.length === 1 && lista === undefined) redirect(`/app/pipelines/${funis[0].id}`);
   const podeGerenciar = ROLE_RANK[activeOrg.role] >= ROLE_RANK.manager;
   // O arquivo só vai para quem pode mexer nele: tirar do arquivo e excluir são
   // `requireRole("manager")` nas rotas, e mostrar a gaveta a quem receberia 403

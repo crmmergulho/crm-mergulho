@@ -31,6 +31,7 @@ import { ChatThread } from "./ChatThread";
 import { Composer, type ComposerHandle } from "./Composer";
 import { ConversationHeader } from "./ConversationHeader";
 import { BotaoIniciarConversa } from "./PainelIniciarConversa";
+import { FaixaDeEtapas } from "./FaixaDeEtapas";
 import { RetentionNotice } from "./RetentionNotice";
 import { CRMSidePanel } from "./CRMSidePanel";
 import type { ModuloDaLateral } from "@/lib/inbox/modulos-da-lateral";
@@ -910,10 +911,30 @@ export function InboxLayout({
   // deixava. Margem de 2px não é margem, é sorte.
   return (
     <OpenConversationProvider conversationId={selectedId}>
+    {/*
+      FAIXA DE ETAPAS (personalização da Mergulho): a altura que a grade tinha
+      passa para este invólucro, e a grade ocupa o que sobra embaixo da faixa
+      (`flex-1 min-h-0`). Sem faixa (componente devolve null), a grade fica com a
+      altura inteira — exatamente como antes.
+    */}
+    <div className="flex h-[calc(100dvh-var(--faixas-de-cima,0px)-3.5rem-var(--space-6)-max(var(--space-6),var(--rodape-ocupado,0px)))] w-full flex-col">
+    <FaixaDeEtapas
+      orgId={orgId}
+      filtro={filterValue.tag}
+      onEscolher={(etiquetas) =>
+        setFilterValue({
+          ...filterValue,
+          // Uma etiqueta vai como string (o caminho de sempre); várias, em "ou":
+          // o botão da etapa com passos mostra quem está em QUALQUER passo.
+          tag: etiquetas === null ? undefined : etiquetas.length === 1 ? etiquetas[0] : etiquetas,
+          tagMode: etiquetas !== null && etiquetas.length > 1 ? "ou" : undefined,
+        })
+      }
+    />
     <div
       ref={gradeRef}
       className={cn(
-        "grid relative h-[calc(100dvh-var(--faixas-de-cima,0px)-3.5rem-var(--space-6)-max(var(--space-6),var(--rodape-ocupado,0px)))] w-full grid-cols-1 md:grid-cols-[300px_1fr]",
+        "grid relative min-h-0 w-full flex-1 grid-cols-1 md:grid-cols-[300px_1fr]",
         // Recolhido (issue #3004), a terceira trilha vira o trilho estreito do
         // botão de expandir e a conversa fica com o que era da ficha. Duas
         // listas em vez de uma classe com valor em variável: o Tailwind precisa
@@ -1300,6 +1321,7 @@ export function InboxLayout({
           );
         }}
       />
+    </div>
     </div>
     </OpenConversationProvider>
   );
