@@ -17,6 +17,12 @@
  * entrar em Follow-up) não é automática do contato: quem a põe no contato é a
  * pessoa, e ela continua na lista.
  *
+ * E a etiqueta que uma regra USA COMO GATILHO ("quando o contato ganhar
+ * «aula experimental», mova o card para Aula Experimental") é manual por
+ * definição, mesmo que outra regra também a ponha sozinha: ela existe para ser
+ * posta à mão. Por isso entra na lista e sai das automáticas
+ * (`etiquetasQueAcionamRegras`).
+ *
  * Puro, sem I/O.
  */
 import { normalizarTag } from "@/lib/contacts/tag-normalizada";
@@ -25,6 +31,38 @@ import { normalizarTag } from "@/lib/contacts/tag-normalizada";
 export interface RegraComEtiquetas {
   is_active: boolean;
   actions: unknown;
+  trigger_event?: string;
+  conditions?: unknown;
+}
+
+/** As condições de uma regra, achatadas: lista solta, grupo `all` ou grupo `any`. */
+function condicoesDaRegra(condicoes: unknown): Array<{ field?: unknown; op?: unknown; value?: unknown }> {
+  if (Array.isArray(condicoes)) return condicoes;
+  if (condicoes && typeof condicoes === "object") {
+    const grupo = condicoes as { all?: unknown; any?: unknown };
+    if (Array.isArray(grupo.all)) return grupo.all;
+    if (Array.isArray(grupo.any)) return grupo.any;
+  }
+  return [];
+}
+
+/**
+ * As etiquetas que disparam alguma regra ATIVA de "contato ganhou etiqueta"
+ * (`contact.tag_added`, condição em `event.added_tags`), normalizadas.
+ */
+export function etiquetasQueAcionamRegras(regras: readonly RegraComEtiquetas[]): string[] {
+  const vistas = new Set<string>();
+  for (const regra of regras) {
+    if (!regra.is_active || regra.trigger_event !== "contact.tag_added") continue;
+    for (const condicao of condicoesDaRegra(regra.conditions)) {
+      if (condicao.field !== "event.added_tags") continue;
+      if (condicao.op !== "contains" && condicao.op !== "eq") continue;
+      if (typeof condicao.value !== "string") continue;
+      const normalizada = normalizarTag(condicao.value);
+      if (normalizada) vistas.add(normalizada);
+    }
+  }
+  return [...vistas];
 }
 
 /** As etiquetas que regras ATIVAS põem ou tiram do contato, normalizadas e sem repetir. */
@@ -45,7 +83,8 @@ export function etiquetasAutomaticasDoContato(regras: readonly RegraComEtiquetas
       }
     }
   }
-  return [...vistas];
+  const acionam = new Set(etiquetasQueAcionamRegras(regras));
+  return [...vistas].filter((tag) => !acionam.has(tag));
 }
 
 /** O vocabulário sem as automáticas: normalizado, sem repetir, em ordem alfabética. */

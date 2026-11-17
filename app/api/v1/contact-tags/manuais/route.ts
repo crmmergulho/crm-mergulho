@@ -16,7 +16,12 @@ import { randomUUID } from "node:crypto";
 
 import { fail, ok } from "@/lib/api/wrappers";
 import { requireRole } from "@/lib/auth/require-role";
-import { etiquetasAutomaticasDoContato, etiquetasManuais, type RegraComEtiquetas } from "@/lib/contacts/etiquetas-manuais";
+import {
+  etiquetasAutomaticasDoContato,
+  etiquetasManuais,
+  etiquetasQueAcionamRegras,
+  type RegraComEtiquetas,
+} from "@/lib/contacts/etiquetas-manuais";
 import { logger } from "@/lib/logger";
 import { tagsPageResultSchema } from "@/lib/schemas/tags";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -50,7 +55,7 @@ export async function GET(): Promise<Response> {
 
   const { data: regras, error: erroDasRegras } = await createAdminClient()
     .from("automation_rules")
-    .select("is_active, actions")
+    .select("is_active, actions, trigger_event, conditions")
     .eq("organization_id", org)
     .eq("is_active", true);
   if (erroDasRegras) {
@@ -62,6 +67,10 @@ export async function GET(): Promise<Response> {
     return fail("internal_error", "Não foi possível carregar as tags.", 500, { requestId });
   }
 
-  const automaticas = etiquetasAutomaticasDoContato((regras ?? []) as RegraComEtiquetas[]);
-  return ok({ manuais: etiquetasManuais(curadas, automaticas), automaticas }, { requestId });
+  const lidas = (regras ?? []) as RegraComEtiquetas[];
+  const automaticas = etiquetasAutomaticasDoContato(lidas);
+  // A etiqueta que uma regra usa como gatilho entra na lista mesmo sem estar no
+  // vocabulário curado: ela existe para ser posta à mão.
+  const manuais = etiquetasManuais([...curadas, ...etiquetasQueAcionamRegras(lidas)], automaticas);
+  return ok({ manuais, automaticas }, { requestId });
 }

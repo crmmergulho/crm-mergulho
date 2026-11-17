@@ -54,7 +54,9 @@ import {
   configDaEtapaParada,
   configDoSilencio,
   naoDisparadosTemporais,
+  direcaoDeEspera,
   ultimaEsperaDoCliente,
+  ultimaEsperaPeloCliente,
   type ConversaParaEspera,
 } from "@/lib/automation/gatilhos-de-tempo";
 import { autorizaCron } from "@/lib/auth/cron-auth";
@@ -161,9 +163,12 @@ async function handle(req: NextRequest): Promise<Response> {
 
       if (silencio) {
         const coluna = colunaDaDirecao(silencio.direcao);
-        // Personalização da Mergulho: "cliente esperando resposta" precisa das
-        // DUAS colunas para saber quem falou por último, e só de conversa aberta.
-        const esperando = silencio.direcao === "cliente_esperando";
+        // Personalização da Mergulho: "cliente esperando resposta" e "aguardando
+        // o cliente" precisam das DUAS colunas para saber quem falou por último,
+        // e só de conversa aberta.
+        const esperando = direcaoDeEspera(silencio.direcao);
+        const inicioDaEspera =
+          silencio.direcao === "aguardando_cliente" ? ultimaEsperaPeloCliente : ultimaEsperaDoCliente;
         let cursor: string | null = null;
 
         for (;;) {
@@ -230,7 +235,7 @@ async function handle(req: NextRequest): Promise<Response> {
               porContato.set(contato, lista);
             }
             for (const [contato, lista] of porContato) {
-              const espera = ultimaEsperaDoCliente(lista);
+              const espera = inicioDaEspera(lista);
               if (espera) ultimaPorContato.set(contato, espera);
             }
           } else {

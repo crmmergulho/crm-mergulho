@@ -8,10 +8,10 @@
  * aplica a etiqueta-espelho da etapa no MESMO filtro de etiqueta do Inbox (o
  * seletor "Filtrar por tag" mostra a escolha); clicar de novo tira o filtro.
  *
- * A etapa com PASSOS (o follow-up de 7 mensagens) ganha, ao lado do botão dela,
- * um botão pequeno por passo ("01" … "07"), com quantos contatos estão naquele
- * passo e as não lidas. O botão da etapa filtra quem está em qualquer passo;
- * o do passo, só quem está nele.
+ * A etapa com PASSOS (o follow-up de 7 mensagens) tem os passos DENTRO do botão:
+ * a setinha ao lado do nome abre a lista "01" … "07", com quantos contatos estão
+ * em cada passo e as não lidas. O nome filtra quem está em qualquer passo; o
+ * item da lista, só quem está naquele passo (e o botão mostra qual, "· 02").
  *
  * A regra mora em `lib/inbox/faixa-de-etapas.ts`; os números, em
  * `/api/v1/inbox/faixa-de-etapas`. Sem dados (rota falhou, funil sem etapas,
@@ -19,9 +19,21 @@
  */
 import { useQuery } from "@tanstack/react-query";
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useT } from "@/hooks/i18n/useT";
 import { apiClient } from "@/lib/api/client";
-import { escolhaAtiva, type FaixaDeEtapas as DadosDaFaixa } from "@/lib/inbox/faixa-de-etapas";
+import {
+  escolhaAtiva,
+  type EtapaDaFaixa,
+  type FaixaDeEtapas as DadosDaFaixa,
+} from "@/lib/inbox/faixa-de-etapas";
 import { cn } from "@/lib/utils";
 
 /** Cor de reserva quando a etapa não tem cor própria cadastrada. */
@@ -56,6 +68,100 @@ function NaoLidas({ total, rotulo }: { total: number; rotulo: string }) {
   );
 }
 
+interface BotaoProps {
+  etapa: EtapaDaFaixa;
+  cor: string;
+  /** A etapa inteira está escolhida. */
+  etapaInteira: boolean;
+  /** O passo escolhido desta etapa, ou `null`. */
+  passoAtivo: string | null;
+  onEscolher: (etiquetas: string[] | null) => void;
+}
+
+function BotaoDaEtapa({ etapa, cor, etapaInteira, passoAtivo, onEscolher }: BotaoProps) {
+  const t = useT();
+  const semFiltro = etapa.etiquetas.length === 0;
+  const marcada = etapaInteira || passoAtivo !== null;
+  const rotuloDoPasso = passoAtivo ? etapa.passos.find((p) => p.etiqueta === passoAtivo)?.rotulo : null;
+  const temPassos = etapa.passos.length > 0;
+
+  return (
+    <div
+      className={cn(
+        "inline-flex items-stretch overflow-hidden rounded-md text-xs font-semibold uppercase tracking-wide text-white transition",
+        marcada ? "ring-2 ring-black/70 ring-offset-1 dark:ring-white/80" : "opacity-85 hover:opacity-100",
+        semFiltro && "opacity-40",
+      )}
+      style={{ backgroundColor: cor }}
+    >
+      <button
+        type="button"
+        disabled={semFiltro}
+        aria-pressed={marcada}
+        title={
+          semFiltro
+            ? t("Esta etapa ainda não tem etiqueta automática")
+            : marcada
+              ? t("Clique para tirar o filtro")
+              : t("Mostrar só os contatos desta etapa")
+        }
+        onClick={() => onEscolher(marcada ? null : etapa.etiquetas)}
+        className={cn("inline-flex items-center gap-1.5 px-2.5 py-1", semFiltro && "cursor-not-allowed")}
+      >
+        <span className="rounded bg-black/25 px-1.5 tabular-nums">{etapa.cards}</span>
+        <span>
+          {etapa.nome}
+          {rotuloDoPasso ? ` · ${rotuloDoPasso}` : ""}
+        </span>
+        <NaoLidas total={etapa.novas} rotulo={t("conversas não lidas")} />
+      </button>
+      {temPassos && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label={t("Passos de {etapa}").replace("{etapa}", etapa.nome)}
+              title={t("Ver os passos")}
+              className="border-l border-white/30 px-1.5 hover:bg-black/15"
+            >
+              <span aria-hidden>▾</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[13rem]">
+            <DropdownMenuLabel className="text-xs">{etapa.nome}</DropdownMenuLabel>
+            <DropdownMenuItem onSelect={() => onEscolher(etapaInteira ? null : etapa.etiquetas)}>
+              <span className="flex-1">{t("Todos os passos")}</span>
+              <span className="tabular-nums text-muted-foreground">{etapa.cards}</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {etapa.passos.map((passo) => {
+              const ativo = passoAtivo === passo.etiqueta;
+              return (
+                <DropdownMenuItem
+                  key={passo.etiqueta}
+                  onSelect={() => onEscolher(ativo ? null : [passo.etiqueta])}
+                  className={cn(ativo && "font-semibold")}
+                >
+                  <span className="flex-1">
+                    {t("Passo {n}").replace("{n}", passo.rotulo)}
+                    {ativo ? " ✓" : ""}
+                  </span>
+                  <span className="tabular-nums text-muted-foreground">{passo.contatos}</span>
+                  {passo.novas > 0 && (
+                    <span className="ml-1.5 rounded-full bg-red-600 px-1.5 text-[11px] tabular-nums text-white">
+                      {passo.novas}
+                    </span>
+                  )}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  );
+}
+
 export function FaixaDeEtapas({ orgId, filtro, onEscolher }: Props) {
   const t = useT();
   const { data } = useFaixaDeEtapas(orgId);
@@ -70,74 +176,16 @@ export function FaixaDeEtapas({ orgId, filtro, onEscolher }: Props) {
       className="hidden w-full shrink-0 flex-wrap items-center gap-2 border-b border-border px-3 py-2 md:flex"
     >
       <span className="mr-1 text-sm font-semibold">{data.funil.nome}</span>
-      {etapas.map((etapa, indice) => {
-        const cor = etapa.cor ?? PALETA[indice % PALETA.length];
-        const semFiltro = etapa.etiquetas.length === 0;
-        const etapaInteira = ativa?.etapaId === etapa.id && ativa.passo === null;
-        return (
-          <div key={etapa.id} className="inline-flex items-center gap-1">
-            <button
-              type="button"
-              disabled={semFiltro}
-              aria-pressed={etapaInteira}
-              title={
-                semFiltro
-                  ? t("Esta etapa ainda não tem etiqueta automática")
-                  : etapaInteira
-                    ? t("Clique para tirar o filtro")
-                    : t("Mostrar só os contatos desta etapa")
-              }
-              onClick={() => onEscolher(etapaInteira ? null : etapa.etiquetas)}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white transition",
-                etapaInteira ? "ring-2 ring-black/70 ring-offset-1 dark:ring-white/80" : "opacity-85 hover:opacity-100",
-                semFiltro && "cursor-not-allowed opacity-40",
-              )}
-              style={{ backgroundColor: cor }}
-            >
-              <span className="rounded bg-black/25 px-1.5 tabular-nums">{etapa.cards}</span>
-              <span>{etapa.nome}</span>
-              <NaoLidas total={etapa.novas} rotulo={t("conversas não lidas")} />
-            </button>
-            {etapa.passos.length > 0 && (
-              <div
-                role="group"
-                aria-label={t("Passos de {etapa}").replace("{etapa}", etapa.nome)}
-                className="inline-flex items-center gap-1 rounded-md border px-1 py-0.5"
-                style={{ borderColor: cor }}
-              >
-                {etapa.passos.map((passo) => {
-                  const passoAtivo = ativa?.etapaId === etapa.id && ativa.passo === passo.etiqueta;
-                  return (
-                    <button
-                      key={passo.etiqueta}
-                      type="button"
-                      aria-pressed={passoAtivo}
-                      title={
-                        passoAtivo
-                          ? t("Clique para tirar o filtro")
-                          : t("Mostrar só quem está em {passo}").replace("{passo}", passo.etiqueta)
-                      }
-                      onClick={() => onEscolher(passoAtivo ? null : [passo.etiqueta])}
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold tabular-nums transition",
-                        passoAtivo ? "text-white" : "hover:opacity-80",
-                      )}
-                      style={passoAtivo ? { backgroundColor: cor } : { color: cor }}
-                    >
-                      <span>{passo.rotulo}</span>
-                      <span className={cn("rounded px-1", passoAtivo ? "bg-black/25" : "bg-black/5 dark:bg-white/10")}>
-                        {passo.contatos}
-                      </span>
-                      <NaoLidas total={passo.novas} rotulo={t("conversas não lidas")} />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {etapas.map((etapa, indice) => (
+        <BotaoDaEtapa
+          key={etapa.id}
+          etapa={etapa}
+          cor={etapa.cor ?? PALETA[indice % PALETA.length] ?? "#475569"}
+          etapaInteira={ativa?.etapaId === etapa.id && ativa.passo === null}
+          passoAtivo={ativa?.etapaId === etapa.id ? ativa.passo : null}
+          onEscolher={onEscolher}
+        />
+      ))}
       <span className="ml-auto text-xs text-text-muted">
         {t("Número à esquerda: cards · Vermelho: não lidas")}
       </span>
