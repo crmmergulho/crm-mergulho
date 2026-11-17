@@ -29,6 +29,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createFollowupEnrollmentSchema } from "@/lib/followup/api-schemas";
 import { ENROLLMENT_LIST_COLUMNS, enrollFollowupFlow } from "@/lib/followup/enroll";
+import { levarCardParaEtapaDoFluxo } from "@/lib/followup/card-na-etapa-do-fluxo";
+import { logger } from "@/lib/logger";
 import { traduzir } from "@/lib/i18n/dicionario";
 
 export const dynamic = "force-dynamic";
@@ -159,5 +161,26 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (!result.ok) {
     return fail(result.code, result.message, result.status, { requestId });
   }
+
+  // Mergulho (nov/2026): o fluxo que começa por ETAPA leva o card junto, como
+  // se a pessoa o tivesse arrastado. Sem isto o cliente recebia o follow-up com
+  // o card parado em "Em atendimento". Melhor esforço: a inscrição já existe.
+  try {
+    await levarCardParaEtapaDoFluxo(admin, {
+      organizationId: activeOrg.orgId,
+      pointerId: parsed.data.pointer_id,
+      contactId: parsed.data.contact_id,
+      actor: { type: "user", id: user.id },
+      requestId,
+    });
+  } catch (erro) {
+    logger.warn("followup_manual_move_failed", {
+      organization_id: activeOrg.orgId,
+      pointer_id: parsed.data.pointer_id,
+      request_id: requestId,
+      erro: erro instanceof Error ? erro.message : String(erro),
+    });
+  }
+
   return ok(result.enrollment, { requestId, status: 201 });
 }
