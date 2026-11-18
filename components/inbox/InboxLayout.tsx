@@ -27,6 +27,7 @@ import { useParticipacoesRealtime } from "@/hooks/inbox/useParticipacoesRealtime
 import { ConversationList } from "./ConversationList";
 import { BarraDeAcoesEmLote } from "./BarraDeAcoesEmLote";
 import { InboxFilters, type InboxFiltersValue, type InboxTab } from "./InboxFilters";
+import { ABA_AUTOMATICO_VISIVEL } from "@/lib/inbox/abas-da-mergulho";
 import { ChatThread } from "./ChatThread";
 import { Composer, type ComposerHandle } from "./Composer";
 import { ConversationHeader } from "./ConversationHeader";
@@ -229,7 +230,10 @@ export function tabToFilter(
   }
 }
 
-const FILTER_TABS: InboxTab[] = ["unassigned", "mine", "all", "closed", "archived", "ai"];
+// Mergulho: "ai" só vale quando a aba existe nesta instalação (`lib/inbox/abas-da-mergulho.ts`).
+const FILTER_TABS: InboxTab[] = (["unassigned", "mine", "all", "closed", "archived", "ai"] as InboxTab[]).filter(
+  (tab) => tab !== "ai" || ABA_AUTOMATICO_VISIVEL,
+);
 
 /**
  * Lê ?filter= (G4-02, deep-link). ?filter=all é HONRADO mesmo para agent — a

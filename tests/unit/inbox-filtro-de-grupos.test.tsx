@@ -22,6 +22,12 @@ const get = vi.fn(async (url?: string) => {
   return { data: [] };
 });
 
+// Mergulho: a instalação esconde Automático e Grupos; este teste exercita o
+// comportamento do produto com as duas ligadas.
+vi.mock("@/lib/inbox/abas-da-mergulho", () => ({
+  ABA_AUTOMATICO_VISIVEL: true,
+  FILTRO_DE_GRUPOS_VISIVEL: true,
+}));
 vi.mock("@/lib/api/client", () => ({ apiClient: { get: (url: string) => get(url) } }));
 vi.mock("@/components/feedback/ApiErrorToast", () => ({ showApiError: vi.fn() }));
 vi.mock("@/lib/supabase/browser", () => ({

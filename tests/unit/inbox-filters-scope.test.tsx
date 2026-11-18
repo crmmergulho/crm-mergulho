@@ -25,6 +25,12 @@ const activeOrgRef: { current: ActiveOrg | null } = { current: null };
 /** `undefined` = listagem ainda carregando (ou que falhou) — não é "zero canais". */
 const canaisRef: { current: ChannelSession[] | undefined } = { current: [] };
 
+// Mergulho: a instalação esconde Automático e Grupos; este teste exercita o
+// comportamento do produto com as duas ligadas.
+vi.mock("@/lib/inbox/abas-da-mergulho", () => ({
+  ABA_AUTOMATICO_VISIVEL: true,
+  FILTRO_DE_GRUPOS_VISIVEL: true,
+}));
 vi.mock("@/hooks/auth/AuthProvider", () => ({
   useAuth: () => ({ activeOrg: activeOrgRef.current }),
 }));

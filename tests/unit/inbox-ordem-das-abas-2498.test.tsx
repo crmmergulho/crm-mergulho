@@ -32,6 +32,12 @@ import type { ActiveOrg } from "@/lib/auth/types";
 
 const activeOrgRef: { current: ActiveOrg | null } = { current: null };
 
+// Mergulho: a instalação esconde Automático e Grupos; este teste exercita o
+// comportamento do produto com as duas ligadas.
+vi.mock("@/lib/inbox/abas-da-mergulho", () => ({
+  ABA_AUTOMATICO_VISIVEL: true,
+  FILTRO_DE_GRUPOS_VISIVEL: true,
+}));
 vi.mock("@/hooks/auth/AuthProvider", () => ({
   useAuth: () => ({ activeOrg: activeOrgRef.current }),
 }));

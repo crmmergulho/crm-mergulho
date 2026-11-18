@@ -37,6 +37,7 @@ import { useConversationCounts } from "@/hooks/inbox/useConversationCounts";
 import { useDepoisDeMontar } from "@/hooks/ui/useDepoisDeMontar";
 import { roleAtLeast, type Role, type VisibilityMode } from "@/lib/auth/types";
 import { SeletorDeAtendente } from "@/components/inbox/SeletorDeAtendente";
+import { ABA_AUTOMATICO_VISIVEL, FILTRO_DE_GRUPOS_VISIVEL } from "@/lib/inbox/abas-da-mergulho";
 import type { Sector } from "@/hooks/team/useSectors";
 
 export type InboxTab = "unassigned" | "mine" | "all" | "closed" | "archived" | "ai";
@@ -73,11 +74,18 @@ const INBOX_TABS: { value: InboxTab; label: string }[] = [
  * para `agent` quando visibility_mode ≠ 'all'; viewer/manager/admin sempre veem.
  * É apenas cosmético — a RLS (G4-01) é quem garante o escopo mesmo via ?filter=all.
  */
+/** A aba existe NESTA instalação? Só "Automático" depende disso (`lib/inbox/abas-da-mergulho.ts`). */
+export function abaLigadaNaInstalacao(tab: InboxTab): boolean {
+  return tab !== "ai" || ABA_AUTOMATICO_VISIVEL;
+}
+
 export function visibleInboxTabs(role: Role, mode: VisibilityMode | undefined): InboxTab[] {
   // `own_and_sector` (#4022): a conversa do colega do setor não está na Fila nem
   // em Minhas — sem a aba Todas ela não aparece em lugar nenhum da tela.
   const hideAll = role === "agent" && mode !== "all" && mode !== "own_and_sector";
-  return INBOX_TABS.filter((t) => !(t.value === "all" && hideAll)).map((t) => t.value);
+  return INBOX_TABS.filter((t) => !(t.value === "all" && hideAll) && abaLigadaNaInstalacao(t.value)).map(
+    (t) => t.value,
+  );
 }
 
 export interface InboxFiltersValue {
@@ -316,7 +324,7 @@ export function InboxFilters({ value, onChange, filas: filasDaOrganizacao }: Pro
 
   const tabs = activeOrg
     ? visibleInboxTabs(activeOrg.role, activeOrg.visibility_mode)
-    : INBOX_TABS.map((t) => t.value);
+    : INBOX_TABS.map((t) => t.value).filter(abaLigadaNaInstalacao);
   const moveTab = (direction: -1 | 1) => {
     const next = tabs[tabs.indexOf(value.tab) + direction];
     if (next) onChange(comAba(value, next));
@@ -546,6 +554,7 @@ export function InboxFilters({ value, onChange, filas: filasDaOrganizacao }: Pro
           {/* MESMO PADRÃO do botão acima: filtro auxiliar pressionável, na
               mesma linha. "Grupos" manda `is_group=true` na listagem — sem ele
               a aba mostra tudo, individual e grupo misturados, como hoje. */}
+          {FILTRO_DE_GRUPOS_VISIVEL && (
           <button
             type="button"
             aria-pressed={value.onlyGroups ?? false}
@@ -560,6 +569,7 @@ export function InboxFilters({ value, onChange, filas: filasDaOrganizacao }: Pro
           >
             {t("Grupos")}
           </button>
+          )}
         </div>
 
         {(showChannelSwitch || mostrarSeletorDeTag || mostrarSeletorDeAtendente) && (
