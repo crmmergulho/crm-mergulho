@@ -79358,7 +79358,7 @@ alter table public.contacts
   add column if not exists contact_type text default 'cliente' not null;
 
 comment on column public.contacts.contact_type is
-  'Tipo do contato (issue 3005): cliente (padrão) ou fornecedor. Fornecedor conversa normalmente — ao contrário de is_personal, NÃO veta envio; o que muda é o painel/lista de campos (fatias seguintes). Quem mudou/quando fica em auditoria + timeline, nunca aqui.';
+  'Tipo do contato (issue 3005): cliente (padrão), fornecedor, empresa ou professor (os dois últimos: Mergulho, migration 9348). Nenhum deles veta envio — ao contrário de is_personal, NÃO veta envio; o que muda é o painel/lista de campos (fatias seguintes). Quem mudou/quando fica em auditoria + timeline, nunca aqui.';
 
 -- drop + add num bloco DO só: o update.sh roda sem ON_ERROR_STOP, e soltos
 -- um add que falhasse deixaria a coluna sem CHECK nenhum.
@@ -79368,7 +79368,8 @@ begin
     drop constraint if exists contacts_contact_type_check;
   alter table public.contacts
     add constraint contacts_contact_type_check
-      check (contact_type in ('cliente', 'fornecedor'));
+      -- empresa e professor: personalização da Mergulho (migration 9348).
+      check (contact_type in ('cliente', 'fornecedor', 'empresa', 'professor'));
 end
 $$;
 
@@ -81158,3 +81159,8 @@ begin
   end loop;
 end
 $fichas_absorvidas$;
+
+
+-- ---- 9348: tipo de contato — empresa e professor (Mergulho) (migration 9348) ----
+-- O CHECK final mora no bloco da 0763, acima: uma constraint, um bloco
+-- (tests/unit/baseline-constraint-reconstruida.test.ts). Só ACRESCENTA valores.

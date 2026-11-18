@@ -235,6 +235,12 @@ export function ContactDetailClient({
             {contact.contact_type === "fornecedor" && (
               <Badge variant="secondary">{t("Fornecedor")}</Badge>
             )}
+            {contact.contact_type === "empresa" && (
+              <Badge variant="secondary">{t("Empresa")}</Badge>
+            )}
+            {contact.contact_type === "professor" && (
+              <Badge variant="secondary">{t("Professor")}</Badge>
+            )}
             {/* A marca PERMANENTE (issue 2379): lida da COLUNA, mesma régua do
                 "Bloqueado" e do "Pessoal" — a devolução não a apaga, então o selo
                 continua a verdade mesmo quando a conversa já voltou ao automático. */}

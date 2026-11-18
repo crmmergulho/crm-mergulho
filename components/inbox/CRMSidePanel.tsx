@@ -1084,6 +1084,12 @@ export function CRMSidePanel({
             {contact?.contact_type === "fornecedor" && (
               <Badge variant="secondary">{t("Fornecedor")}</Badge>
             )}
+            {contact?.contact_type === "empresa" && (
+              <Badge variant="secondary">{t("Empresa")}</Badge>
+            )}
+            {contact?.contact_type === "professor" && (
+              <Badge variant="secondary">{t("Professor")}</Badge>
+            )}
           </div>
           {contact?.phone_number && (
             <div className="text-xs text-muted-foreground">{phoneForDisplay(contact.phone_number)}</div>

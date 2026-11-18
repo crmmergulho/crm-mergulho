@@ -225,6 +225,11 @@ describe("contactPatchSchema", () => {
     expect(parsed.contact_type).toBe("fornecedor");
   });
 
+  it("aceita empresa e professor (Mergulho, migration 9348)", () => {
+    expect(contactPatchSchema.parse({ contact_type: "empresa" }).contact_type).toBe("empresa");
+    expect(contactPatchSchema.parse({ contact_type: "professor" }).contact_type).toBe("professor");
+  });
+
   it("recusa um tipo que o CHECK do banco não conhece", () => {
     // A lista é a MESMA dos dois lados (`CONTACT_TIPOS`): deixar passar
     // 'transportadora' aqui seria 23514 no caminho de gravação, longe da causa.

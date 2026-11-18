@@ -169,6 +169,19 @@ describe("ficha do contato — o seletor de tipo (issue 3005, fatia 1)", () => {
     expect(corpoDoPatch().contact_type).toBe("fornecedor");
   });
 
+  it("o seletor oferece Empresa e Professor, e Professor sai no PATCH (Mergulho)", async () => {
+    const user = userEvent.setup({ delay: null });
+    envolver(<EditContactDialog contact={CONTATO_CLIENTE} open onOpenChange={vi.fn()} />);
+
+    await user.click(await screen.findByRole("combobox", { name: "Tipo de contato" }));
+    expect(await screen.findByRole("option", { name: "Empresa" })).toBeTruthy();
+    await user.click(await screen.findByRole("option", { name: "Professor" }));
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() => expect(patch).toHaveBeenCalled());
+    expect(corpoDoPatch().contact_type).toBe("professor");
+  });
+
   it("salvar sem mexer no seletor mantém cliente (o padrão não vira fornecedor)", async () => {
     const user = userEvent.setup({ delay: null });
     envolver(<EditContactDialog contact={CONTATO_CLIENTE} open onOpenChange={vi.fn()} />);
@@ -204,6 +217,15 @@ describe("painel da conversa — o selo do tipo (issue 3005, fatia 1)", () => {
     envolver(<CRMSidePanel conversation={conversaCom("fornecedor")} />);
 
     expect(await screen.findByText("Fornecedor")).toBeTruthy();
+  });
+
+  it.each([
+    ["empresa", "Empresa"],
+    ["professor", "Professor"],
+  ])("mostra o selo de %s (Mergulho)", async (tipo, selo) => {
+    envolver(<CRMSidePanel conversation={conversaCom(tipo)} />);
+
+    expect(await screen.findByText(selo)).toBeTruthy();
   });
 
   it("não carimba 'cliente' em toda conversa — o padrão não tem selo", async () => {

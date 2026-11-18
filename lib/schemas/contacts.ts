@@ -30,8 +30,12 @@ export const PHONE_REGEX = /^\+\d{8,15}$/;
  * não fala de tipo não pode materializar `contact_type` no payload e reescrever
  * a coluna de quem já é fornecedor — mesma régua do `source` no PATCH, que
  * ficou sem default exatamente por isso (`contactPatchSchema`, mais abaixo).
+ *
+ * Mergulho (nov/2026): `empresa` e `professor` entram ao lado de `fornecedor`,
+ * com o CHECK do banco alargado junto (migration 9348). Como o fornecedor, eles
+ * conversam normalmente: o tipo muda o selo do painel, não o envio.
  */
-export const CONTACT_TIPOS = ["cliente", "fornecedor"] as const;
+export const CONTACT_TIPOS = ["cliente", "fornecedor", "empresa", "professor"] as const;
 export const contactTypeSchema = z.enum(CONTACT_TIPOS);
 export type ContactType = z.infer<typeof contactTypeSchema>;
 

@@ -74,6 +74,8 @@ interface FormShape {
 const ROTULO_DO_TIPO: Record<ContactType, string> = {
   cliente: "Cliente",
   fornecedor: "Fornecedor",
+  empresa: "Empresa",
+  professor: "Professor",
 };
 
 interface Props {
