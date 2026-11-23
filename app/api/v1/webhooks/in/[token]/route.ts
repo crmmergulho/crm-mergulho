@@ -23,6 +23,7 @@ import { estamparAtribuicaoDoContato } from "@/lib/leads/atribuicao-de-anuncio";
 import { classificarLeadInicial, type ResultadoClassificacaoInicial } from "@/lib/leads/classificacao-inicial";
 import type { CreateLeadInput } from "@/lib/schemas";
 import { mapInboundPayload, extrairAtribuicaoDoInbound, verifyInboundSignature, type FieldMap } from "@/lib/webhooks/inbound";
+import { isDeskcommPayload, mapDeskcommPayload, type DeskcommMapped } from "@/lib/webhooks/deskcomm";
 import { HEADER_ASSINATURA_DE_ENTRADA } from "@/lib/webhooks/assinatura";
 import { encontrarContatoPorTelefoneComNome } from "@/lib/channels/contato-por-telefone";
 import {
@@ -308,6 +309,15 @@ export async function POST(req: NextRequest, ctx: RouteCtx): Promise<NextRespons
       ? mapElementorPayload(payload)
       : null;
 
+  // Mergulho (nov/2026): o envio de OUTRO DeskcommCRM — o card que o CRM da SDR
+  // manda para o CRM da unidade pela ação "Avisar outro sistema"
+  // (`lib/webhooks/deskcomm.ts`). Último na precedência pela mesma razão do
+  // Elementor: a detecção é por forma estrita, e nenhum payload é de duas origens.
+  const deskcommMapped: DeskcommMapped | null =
+    respondiMapped === null && rdStationMapped === null && elementorMapped === null && isDeskcommPayload(payload)
+      ? mapDeskcommPayload(payload)
+      : null;
+
   // Idempotência (spec §5): `external_id` é campo reservado do envio — quem
   // integra via sistema (Zapier/n8n/loja) manda o ID único do disparo e o
   // reenvio automático (retry por timeout) NUNCA duplica o lead. O índice
@@ -332,6 +342,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx): Promise<NextRespons
       // tipo de coisa que só aparece quando alguém manda um corpo fabricado.
       : (respondiMapped?.externalId?.slice(0, 255) ??
         rdStationMapped?.externalId?.slice(0, 255) ??
+        deskcommMapped?.externalId?.slice(0, 255) ??
         null);
 
   const respondWithLead = (leadId: string): NextResponse => {
@@ -450,6 +461,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx): Promise<NextRespons
     respondiMapped ??
     rdStationMapped ??
     elementorMapped ??
+    deskcommMapped ??
     mapInboundPayload(externalId ? payloadForMapping : payload, fieldMap);
   if (!mapped.phone) {
     const rawPhone = findRawPhoneIfUnnormalized(payload, fieldMap);
@@ -979,6 +991,25 @@ export async function POST(req: NextRequest, ctx: RouteCtx): Promise<NextRespons
     }
   }
 
+  // Mergulho (nov/2026): as ETIQUETAS do contato que veio de outro DeskcommCRM
+  // (a modalidade escolhe a trilha do follow-up no destino). A mesma junção da
+  // ação "Adicionar tag" (`fn_contato_adicionar_etiquetas`): soma no banco, não
+  // sobrescreve. Falha tolerada — perder a etiqueta é ruim, perder a captação é pior.
+  if (deskcommMapped && contactId && deskcommMapped.etiquetasDoContato.length > 0) {
+    const { error: erroDasEtiquetas } = await admin.rpc("fn_contato_adicionar_etiquetas", {
+      p_org: source.organization_id,
+      p_contato: contactId,
+      p_etiquetas: deskcommMapped.etiquetasDoContato,
+    });
+    if (erroDasEtiquetas) {
+      logger.warn("[webhooks.inbound] etiquetas do envio Deskcomm não gravadas", {
+        organizationId: source.organization_id,
+        requestId,
+        error: erroDasEtiquetas.message,
+      });
+    }
+  }
+
   /**
    * O contato que JÁ EXISTIA também recebe a resposta DESTE envio.
    *
@@ -1253,7 +1284,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx): Promise<NextRespons
       ? respondiLeadTitle(respondiMapped)
       : (mapped.name ?? mapped.phone ?? mapped.email ?? "Lead sem nome"),
     contact_id: contactId,
-    tags: [],
+    tags: deskcommMapped?.etiquetasDoCard ?? [],
     source: "webhook",
     custom_fields: mapped.custom_fields,
     source_metadata: { ...mapped.source_metadata, webhook_source_id: source.id },
