@@ -25,6 +25,7 @@ import { z } from "zod";
 import { registerAction } from "@/lib/automation/actions";
 import type { ActionCtx, ActionResultDetail } from "@/lib/automation/types";
 import { assertDestinoResolvidoSeguro } from "@/lib/automation/outbound-ip";
+import { ehEntradaDaPropriaInstalacao } from "@/lib/automation/entrada-da-propria-instalacao";
 import { assertSafeOutboundUrl } from "@/lib/automation/outbound-url";
 import { mensagemDeErro } from "@/lib/automation/actions/erro-legivel";
 import { decryptWebhookSecret } from "@/lib/webhooks/secrets";
@@ -403,7 +404,14 @@ export async function executeCallWebhook(
       // Guard textual não resolve nome: um hostname público apontando para
       // 169.254.169.254 (metadata da nuvem) ou para os serviços internos da rede do
       // compose passava por ele. Este segundo resolve e julga o IP.
-      await assertDestinoResolvidoSeguro(new URL(url).hostname);
+      //
+      // Mergulho (nov/2026): a ENTRADA DE DADOS do próprio CRM (mesmo domínio
+      // público, só `/api/v1/webhooks/in/<token>`) dispensa só o julgamento do
+      // IP — dentro do compose o domínio resolve para o proxy, que é privado.
+      // Ver `lib/automation/entrada-da-propria-instalacao.ts`.
+      if (!ehEntradaDaPropriaInstalacao(url)) {
+        await assertDestinoResolvidoSeguro(new URL(url).hostname);
+      }
     } catch (err) {
       return { type: "call_webhook", status: "failed", error: (err as Error).message };
     }
