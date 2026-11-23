@@ -15,3 +15,14 @@
  */
 export const ABA_AUTOMATICO_VISIVEL = false;
 export const FILTRO_DE_GRUPOS_VISIVEL = false;
+
+/**
+ * Abas que a ATENDENTE (papel `agent`) não vê: Fechadas e Arquivadas (pedido de
+ * 18/11/2026, feito em 23/11/2026). A administradora continua vendo as duas,
+ * para consultar o histórico.
+ *
+ * A Atendente não perde conversa: a fechada reabre sozinha quando o cliente
+ * escreve (`fn_service_inbound`), e ela abre qualquer conversa dela por
+ * Contatos › ícone de balão (`/app/inbox?id=…`) e usa o botão Reabrir.
+ */
+export const ABAS_ESCONDIDAS_DA_ATENDENTE: readonly string[] = ["closed", "archived"];

@@ -1345,7 +1345,7 @@ export const DICIONARIO: Traducoes = {
   "Esta etapa ainda não tem etiqueta automática": { es: "Esta etapa aún no tiene etiqueta automática" },
   "Clique para tirar o filtro": { es: "Haz clic para quitar el filtro" },
   "Mostrar só os contatos desta etapa": { es: "Mostrar solo los contactos de esta etapa" },
-  "Número à esquerda: cards · Vermelho: não lidas": { es: "Número a la izquierda: tarjetas · Rojo: no leídas" },
+  "Vermelho: conversas não lidas": { es: "Rojo: conversaciones no leídas" },
   "Progresso": { es: "Progreso" },
   "Site da empresa": { es: "Sitio de la empresa" },
   "avaliações": { es: "reseñas" },

@@ -37,6 +37,7 @@ const activeOrgRef: { current: ActiveOrg | null } = { current: null };
 vi.mock("@/lib/inbox/abas-da-mergulho", () => ({
   ABA_AUTOMATICO_VISIVEL: true,
   FILTRO_DE_GRUPOS_VISIVEL: true,
+  ABAS_ESCONDIDAS_DA_ATENDENTE: [],
 }));
 vi.mock("@/hooks/auth/AuthProvider", () => ({
   useAuth: () => ({ activeOrg: activeOrgRef.current }),

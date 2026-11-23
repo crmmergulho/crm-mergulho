@@ -27,6 +27,7 @@ const get = vi.fn(async (url?: string) => {
 vi.mock("@/lib/inbox/abas-da-mergulho", () => ({
   ABA_AUTOMATICO_VISIVEL: true,
   FILTRO_DE_GRUPOS_VISIVEL: true,
+  ABAS_ESCONDIDAS_DA_ATENDENTE: [],
 }));
 vi.mock("@/lib/api/client", () => ({ apiClient: { get: (url: string) => get(url) } }));
 vi.mock("@/components/feedback/ApiErrorToast", () => ({ showApiError: vi.fn() }));

@@ -48,7 +48,20 @@ describe("barra do Inbox da Mergulho", () => {
 
   it("a regra pura também não devolve a aba do automático, para nenhum papel", () => {
     expect(visibleInboxTabs("admin", "all")).not.toContain("ai");
-    expect(visibleInboxTabs("agent", "own_and_unassigned")).toEqual(["unassigned", "mine", "closed", "archived"]);
+    expect(visibleInboxTabs("agent", "own_and_unassigned")).toEqual(["unassigned", "mine"]);
+  });
+
+  it("a Atendente não vê Fechadas nem Arquivadas; a administradora vê", () => {
+    expect(visibleInboxTabs("agent", "all")).toEqual(["unassigned", "mine", "all"]);
+    expect(visibleInboxTabs("admin", "all")).toEqual(["unassigned", "mine", "all", "closed", "archived"]);
+    expect(visibleInboxTabs("manager", "own_and_unassigned")).toContain("closed");
+  });
+
+  it("na tela, a Atendente vê só Fila e Minhas", () => {
+    activeOrgRef.current = { orgId: "org-1", name: "Org", role: "agent", visibility_mode: "own_and_unassigned" };
+    render(<InboxFilters value={VALUE} onChange={() => {}} />);
+    const abas = screen.getAllByRole("tab").map((el) => (el.textContent ?? "").replace(/\d+$/, "").trim());
+    expect(abas).toEqual(["Fila", "Minhas"]);
   });
 
   it("não há botão Grupos; Não lidos continua", () => {

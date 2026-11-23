@@ -27,7 +27,7 @@ import { useParticipacoesRealtime } from "@/hooks/inbox/useParticipacoesRealtime
 import { ConversationList } from "./ConversationList";
 import { BarraDeAcoesEmLote } from "./BarraDeAcoesEmLote";
 import { InboxFilters, type InboxFiltersValue, type InboxTab } from "./InboxFilters";
-import { ABA_AUTOMATICO_VISIVEL } from "@/lib/inbox/abas-da-mergulho";
+import { ABA_AUTOMATICO_VISIVEL, ABAS_ESCONDIDAS_DA_ATENDENTE } from "@/lib/inbox/abas-da-mergulho";
 import { ChatThread } from "./ChatThread";
 import { Composer, type ComposerHandle } from "./Composer";
 import { ConversationHeader } from "./ConversationHeader";
@@ -313,7 +313,11 @@ export function InboxLayout({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const tab = parseFilterParam(searchParams.get("filter"));
+  const tabPedida = parseFilterParam(searchParams.get("filter"));
+  // Mergulho: a Atendente não tem as abas Fechadas e Arquivadas; um endereço
+  // antigo (`?filter=closed`) abre a Fila em vez de uma aba que não aparece.
+  const tab: InboxTab =
+    activeOrg?.role === "agent" && ABAS_ESCONDIDAS_DA_ATENDENTE.includes(tabPedida) ? "unassigned" : tabPedida;
   const idNaUrl = searchParams.get("id");
   /**
    * `?tag=` é o destino do link de cada linha do relatório Por etiqueta

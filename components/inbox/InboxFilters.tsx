@@ -37,7 +37,11 @@ import { useConversationCounts } from "@/hooks/inbox/useConversationCounts";
 import { useDepoisDeMontar } from "@/hooks/ui/useDepoisDeMontar";
 import { roleAtLeast, type Role, type VisibilityMode } from "@/lib/auth/types";
 import { SeletorDeAtendente } from "@/components/inbox/SeletorDeAtendente";
-import { ABA_AUTOMATICO_VISIVEL, FILTRO_DE_GRUPOS_VISIVEL } from "@/lib/inbox/abas-da-mergulho";
+import {
+  ABA_AUTOMATICO_VISIVEL,
+  ABAS_ESCONDIDAS_DA_ATENDENTE,
+  FILTRO_DE_GRUPOS_VISIVEL,
+} from "@/lib/inbox/abas-da-mergulho";
 import type { Sector } from "@/hooks/team/useSectors";
 
 export type InboxTab = "unassigned" | "mine" | "all" | "closed" | "archived" | "ai";
@@ -83,9 +87,11 @@ export function visibleInboxTabs(role: Role, mode: VisibilityMode | undefined): 
   // `own_and_sector` (#4022): a conversa do colega do setor não está na Fila nem
   // em Minhas — sem a aba Todas ela não aparece em lugar nenhum da tela.
   const hideAll = role === "agent" && mode !== "all" && mode !== "own_and_sector";
-  return INBOX_TABS.filter((t) => !(t.value === "all" && hideAll) && abaLigadaNaInstalacao(t.value)).map(
-    (t) => t.value,
-  );
+  // Mergulho: a Atendente não vê Fechadas nem Arquivadas (`lib/inbox/abas-da-mergulho.ts`).
+  const escondidaDoPapel = (tab: InboxTab) => role === "agent" && ABAS_ESCONDIDAS_DA_ATENDENTE.includes(tab);
+  return INBOX_TABS.filter(
+    (t) => !(t.value === "all" && hideAll) && abaLigadaNaInstalacao(t.value) && !escondidaDoPapel(t.value),
+  ).map((t) => t.value);
 }
 
 export interface InboxFiltersValue {
