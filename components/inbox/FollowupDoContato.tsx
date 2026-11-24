@@ -75,8 +75,10 @@ interface Props {
    */
   somenteLeitura: boolean;
   /**
-   * Parar continua `manager`+ (o cancel ficou fora do recorte do #3746). A
-   * leitura não depende disto: quem não pode parar ainda vê o que está rodando.
+   * Parar pela GERÊNCIA (`manager`+), dito pelo painel. O Atendente dono do
+   * cliente também para (Mergulho, nov/2026): para ele a capacidade vem do
+   * servidor, a mesma `pode_inscrever` — a rota de cancel confere a mesma posse.
+   * A leitura não depende disto: quem não pode parar ainda vê o que está rodando.
    */
   podeParar: boolean;
 }
@@ -218,8 +220,10 @@ export function FollowupDoContato({
   if (carregando) return <Skeleton className="h-14 w-full" data-testid="inbox-followup-carregando" />;
   if (erro) return null;
   // Iniciar: a capacidade é do servidor (#3746) e a sessão de suporte não
-  // escreve. Parar: régua própria, dita pelo painel (o cancel continua manager+).
+  // escreve. Parar: a gerência (dita pelo painel) ou quem tem a posse do cliente
+  // (dita pelo servidor, a mesma régua do cancel).
   const podeIniciar = !vivo && !somenteLeitura && podeInscrever && fluxosAtivos.length > 0;
+  const mostraParar = podeParar || (!somenteLeitura && podeInscrever);
   // Nada a mostrar e nada a iniciar: a seção não existe (contrato de RoteirosDoContato).
   if (!exibido && !podeIniciar) return null;
 
@@ -235,7 +239,7 @@ export function FollowupDoContato({
             <Badge variant={tomDoStatus(exibido.status)}>{rotuloDoStatus(exibido.status, t)}</Badge>
           </div>
           {/* Parar para tudo que a seção mostra: o cancel aceita os vivos e o dormente (#3292). */}
-          {exibido && podeParar && (
+          {exibido && mostraParar && (
             <Button
               variant="outline"
               size="sm"

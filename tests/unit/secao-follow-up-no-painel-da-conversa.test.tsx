@@ -302,15 +302,25 @@ describe("painel do inbox — seção de follow-up", () => {
     expect(screen.getByTestId("iniciar-followup")).toBeTruthy();
   });
 
-  it("papel agent vê o fluxo vivo: Parar continua manager+ (fora do recorte do #3746)", async () => {
+  it("papel agent de FORA do cliente vê o fluxo vivo, mas não o Parar (o cancel diria 403)", async () => {
     authRole = "agent";
-    servirApi({ enrollments: [ENROLLMENT], flows: [FLUXO] });
+    servirApi({ enrollments: [ENROLLMENT], flows: [FLUXO], podeInscrever: false });
     renderPainel();
 
     const secao = await screen.findByTestId("inbox-followup");
     expect(secao.textContent).toContain(FLUXO.name);
     expect(screen.queryByTestId("parar-followup")).toBeNull();
     // A vaga está ocupada: Iniciar não é oferecido a ninguém, com ou sem posse.
+    expect(screen.queryByTestId("iniciar-followup")).toBeNull();
+  });
+
+  it("Mergulho — o Atendente DONO do cliente vê o Parar (a mesma posse do cancel)", async () => {
+    authRole = "agent";
+    servirApi({ enrollments: [ENROLLMENT], flows: [FLUXO], podeInscrever: true });
+    renderPainel();
+
+    await screen.findByTestId("inbox-followup");
+    expect(screen.getByTestId("parar-followup")).toBeTruthy();
     expect(screen.queryByTestId("iniciar-followup")).toBeNull();
   });
 

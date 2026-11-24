@@ -1,11 +1,19 @@
 import { requireSupportWrite } from "@/lib/impersonate/support";
 /**
- * POST /api/v1/ai/followups/enrollments/:id/cancel (manager+) — encerra um
+ * POST /api/v1/ai/followups/enrollments/:id/cancel — encerra um
  *   enrollment VIVO (active|waiting_reply|paused_handoff|paused_manual|
  *   coletando|dormente) manualmente pela fila. 409 `already_terminal` se já
  *   tiver encerrado (completed/cancelled/dead) — cancelar 2x não é erro
  *   operacional, mas também não deve reescrever o desfecho de um enrollment que
  *   já fechou por conta própria.
+ *
+ * Quem pode (Mergulho, nov/2026): gerência, sempre; o Atendente, quando o
+ *   cliente é DELE — a MESMA régua de posse do POST de inscrição
+ *   (`lib/carteira/posse.ts`, `acao: "follow_up"`): conversa do contato atribuída
+ *   a ele, ou o contato na carteira dele. Quem ativa o follow-up do cliente pode
+ *   desistir dele; antes, o botão só existia para manager+ e a SDR ficava sem
+ *   saída. A escrita vai pelo cliente admin, filtrada pela organização da sessão,
+ *   porque a RLS de UPDATE de `followup_enrollments` (0489) é manager+.
  *
  * Promessas (`cron_jobs`) NÃO são canceláveis por aqui — fora de escopo desta
  *   task; só enrollments do motor.
@@ -16,8 +24,10 @@ import type { NextRequest } from "next/server";
 import { ok, fail } from "@/lib/api/wrappers";
 import { audit } from "@/lib/audit";
 import { requireRole } from "@/lib/auth/require-role";
+import { conferirPosse, respostaDaPosse } from "@/lib/carteira/posse";
 import { statusCancelavel } from "@/lib/followup/vocabulario";
 import { logger } from "@/lib/logger";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { traduzir } from "@/lib/i18n/dicionario";
 
@@ -51,7 +61,7 @@ export async function POST(_req: NextRequest, ctx: RouteCtx): Promise<Response> 
     return fail("invalid_request", "id inválido.", 400, { requestId });
   }
 
-  const authz = await requireRole("manager", { requestId, resource: "followup_enrollments" });
+  const authz = await requireRole("agent", { requestId, resource: "followup_enrollments" });
   if (!authz.ok) return authz.response;
   const t = (texto: string) => traduzir(texto, authz.user.idioma);
   const { user, org: activeOrg } = authz;
@@ -59,7 +69,7 @@ export async function POST(_req: NextRequest, ctx: RouteCtx): Promise<Response> 
   const supabase = await createClient();
   const { data: existing, error: fetchErr } = await supabase
     .from("followup_enrollments")
-    .select("id, status, current_node_id")
+    .select("id, status, current_node_id, contact_id")
     .eq("id", id)
     .eq("organization_id", activeOrg.orgId)
     .maybeSingle();
@@ -70,7 +80,21 @@ export async function POST(_req: NextRequest, ctx: RouteCtx): Promise<Response> 
     return fail("already_terminal", t("Enrollment já está encerrado."), 409, { requestId });
   }
 
-  const { data: updated, error: updErr } = await supabase
+  // A posse, no servidor: a mesma régua de quem inscreve. Sem `conversaId`, vale
+  // qualquer conversa do contato atribuída ao ator (é o que o GET responde à tela
+  // em `meta.pode_inscrever`, que mostra o botão).
+  const admin = createAdminClient();
+  const posse = await conferirPosse({
+    acao: "follow_up",
+    db: admin,
+    organizationId: activeOrg.orgId,
+    atorId: user.id,
+    papel: activeOrg.role,
+    contactId: existing.contact_id,
+  });
+  if (!posse.pode) return respostaDaPosse(posse, { traduzir: t, requestId });
+
+  const { data: updated, error: updErr } = await admin
     .from("followup_enrollments")
     .update({
       status: "cancelled",
@@ -90,7 +114,7 @@ export async function POST(_req: NextRequest, ctx: RouteCtx): Promise<Response> 
     });
   }
 
-  const { error: eventErr } = await supabase.from("followup_enrollment_events").insert({
+  const { error: eventErr } = await admin.from("followup_enrollment_events").insert({
     organization_id: activeOrg.orgId,
     enrollment_id: id,
     node_id: existing.current_node_id,
@@ -108,7 +132,7 @@ export async function POST(_req: NextRequest, ctx: RouteCtx): Promise<Response> 
     resourceType: "followup_enrollment",
     resourceId: id,
     requestId,
-    metadata: { previous_status: existing.status },
+    metadata: { previous_status: existing.status, posse: posse.motivo },
   });
 
   return ok(updated, { requestId });
