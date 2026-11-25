@@ -117,6 +117,9 @@ const MOTIVO_DA_PARADA: Record<string, string> = {
      ação; `sem_conversa` também (negócio sem contato ou contato sem conversa
      aberta). As recusas da régua chegam pelo `error` e a frase delas é a
      deste mapa — o detalhe não leva `explicacao`, que venceria a tradução. */
+  /* Mergulho (25/11/2026) — a ação `close_conversation`. */
+  nenhuma_conversa_aberta:
+    "O contato não tinha conversa aberta para fechar. Nada mudou.",
   sector_id_ausente:
     "A ação Definir o setor está sem setor escolhido. Abra a automação e escolha o setor da conversa.",
   sem_conversa:

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   corDaEtapa,
   escolhaAtiva,
+  etapasDaFaixaParaOPapel,
   etiquetasDasEtapas,
   etiquetasDeContatoNasRegras,
   passosDaEtapa,
@@ -130,5 +131,48 @@ describe("corDaEtapa", () => {
     expect(corDaEtapa("#1A2b3C")).toBe("#1A2b3C");
     expect(corDaEtapa("blue")).toBeNull();
     expect(corDaEtapa(null)).toBeNull();
+  });
+});
+
+describe("Mergulho 25/11 — a etapa de perda fora da faixa da Atendente", () => {
+  const etapa = (id: string, nome: string, perdida = false): EtapaDaFaixa => ({
+    id,
+    nome,
+    cor: null,
+    etiqueta: nome.toLowerCase(),
+    etiquetas: [nome.toLowerCase()],
+    passos: [],
+    cards: 1,
+    novas: 0,
+    ganha: nome === "Matriculado",
+    perdida,
+  });
+  const funil = [
+    etapa("a", "Novo contato"),
+    etapa("b", "Matriculado"),
+    etapa("c", "Perdido", true),
+    etapa("d", "Reativação"),
+  ];
+
+  it("sem permissão de ver perdidas, só a etapa de perda sai — a ganha fica, e a ordem também", () => {
+    expect(etapasDaFaixaParaOPapel(funil, false).map((e) => e.nome)).toEqual([
+      "Novo contato",
+      "Matriculado",
+      "Reativação",
+    ]);
+  });
+
+  it("quem pode ver perdidas recebe a faixa inteira", () => {
+    expect(etapasDaFaixaParaOPapel(funil, true).map((e) => e.nome)).toEqual([
+      "Novo contato",
+      "Matriculado",
+      "Perdido",
+      "Reativação",
+    ]);
+  });
+
+  it("decide pela marca de perda, não pelo nome", () => {
+    const renomeada = [etapa("x", "Desistiu", true), etapa("y", "Perdido")];
+    expect(etapasDaFaixaParaOPapel(renomeada, false).map((e) => e.nome)).toEqual(["Perdido"]);
   });
 });

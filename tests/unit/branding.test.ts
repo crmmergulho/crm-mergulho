@@ -208,6 +208,24 @@ type EntradaDeMarca = {
 };
 
 const MARCA_CONGELADA: Record<string, EntradaDeMarca> = {
+  "app/api/v1/webhooks/in/[token]/route.ts": {
+    categoria: "PROTOCOLO",
+    motivo:
+      "Mergulho (mergulho.9): a rota de entrada chama o leitor do envelope de outro DeskcommCRM (`lib/webhooks/deskcomm.ts`); os nomes são do formato do remetente, não marca na tela",
+    marcas: ["deskcomm", "deskcomm", "deskcommmapped", "deskcommmapped", "deskcommmapped", "deskcommmapped", "deskcommmapped", "deskcommmapped", "deskcommmapped", "deskcommmapped.etiquetasdocontato", "deskcommmapped.etiquetasdocontato.length", "isdeskcommpayload", "isdeskcommpayload", "mapdeskcommpayload", "mapdeskcommpayload"],
+  },
+  "lib/webhooks/deskcomm.test.ts": {
+    categoria: "PROTOCOLO",
+    motivo:
+      "guarda do contrato acima: o teste monta o envelope que o DeskcommCRM remetente manda e reprova quem mudar a leitura",
+    marcas: ["deskcomm", "deskcomm", "deskcomm_card_id", "deskcomm_evento", "deskcommcrm", "isdeskcommpayload", "isdeskcommpayload", "isdeskcommpayload", "isdeskcommpayload", "isdeskcommpayload", "isdeskcommpayload", "isdeskcommpayload", "isdeskcommpayload", "mapdeskcommpayload", "mapdeskcommpayload", "mapdeskcommpayload", "mapdeskcommpayload", "mapdeskcommpayload", "mapdeskcommpayload", "origem_deskcomm", "origem_deskcomm"],
+  },
+  "lib/webhooks/deskcomm.ts": {
+    categoria: "PROTOCOLO",
+    motivo:
+      "Mergulho (mergulho.9): reconhece o envelope que OUTRO DeskcommCRM manda pelo \"Avisar outro sistema\" (ligação SDR → unidades). Os nomes descrevem o formato do remetente, não a marca exibida; a origem gravada (`origem_deskcomm`, `deskcomm_card_id`) é o que a unidade usa para não duplicar o card",
+    marcas: ["deskcomm", "deskcomm", "deskcommmapped", "deskcommmapped", "isdeskcommpayload", "mapdeskcommpayload", "origem_deskcomm", "origem_deskcomm", "source_metadata.deskcomm_card_id", "source_metadata.deskcomm_evento"],
+  },
   // ─── PROTOCOLO — contrato de fio. Renomear quebra integração alheia. ───
   "lib/ai/pontos/pkce-da-assinatura.ts": {
     categoria: "PROTOCOLO",

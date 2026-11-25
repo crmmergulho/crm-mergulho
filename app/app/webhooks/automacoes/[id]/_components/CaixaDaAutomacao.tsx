@@ -185,6 +185,9 @@ function DescricaoDaAcao({ tipo, config }: { tipo: string; config: Record<string
     // #3881 — mesmo defeito: sem caso, a caixa dizia « define_sector ».
     case "define_sector":
       return <DescricaoDoSetor config={config} />;
+    // Mergulho (25/11/2026) — sem caso, a caixa diria « close_conversation ».
+    case "close_conversation":
+      return <>{t("Sem mensagem ao cliente")}</>;
   }
   return <>{tipo}</>;
 }

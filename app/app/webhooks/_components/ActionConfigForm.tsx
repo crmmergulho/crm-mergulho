@@ -186,7 +186,9 @@ export type ActionItem =
   // #3881 — a conversa vai para um SETOR. Mesmos campos do schema da API: o
   // setor escolhido e a caixa (desligada por padrão) que autoriza a regra a
   // reclassificar o que uma pessoa classificou à mão.
-  | { type: "define_sector"; config: { sector_id: string; sobrescrever_setor_manual?: boolean } };
+  | { type: "define_sector"; config: { sector_id: string; sobrescrever_setor_manual?: boolean } }
+  // Mergulho (25/11/2026) — fechar a conversa não tem o que configurar.
+  | { type: "close_conversation"; config: Record<string, never> };
 
 export function defaultActionConfig(type: ActionItem["type"]): ActionItem {
   switch (type) {
@@ -243,6 +245,8 @@ export function defaultActionConfig(type: ActionItem["type"]): ActionItem {
     // disparo (`sector_id_ausente`) em vez de gravar qualquer coisa.
     case "define_sector":
       return { type, config: { sector_id: "" } };
+    case "close_conversation":
+      return { type, config: {} };
   }
 }
 
@@ -1717,6 +1721,18 @@ function SetLeadDateFieldForm({
  * O e-mail para uma pessoa da equipe mora no `send_email`, no destinatário
  * "E-mail de uma pessoa da equipe".
  */
+/** Mergulho (25/11/2026) — `close_conversation`: nada a escolher, só dizer o que acontece. */
+function CloseConversationForm() {
+  const t = useT();
+  return (
+    <p className="text-xs text-muted-foreground">
+      {t(
+        "Fecha a conversa em andamento do contato: ela sai da Fila e de Minhas. Nada é enviado ao cliente; se ele escrever, a conversa reabre na Fila.",
+      )}
+    </p>
+  );
+}
+
 function NotifyTeamForm() {
   const t = useT();
   return (
@@ -1905,5 +1921,7 @@ export function ActionConfigForm({
           onChange={(config) => onChange({ type: action.type, config })}
         />
       );
+    case "close_conversation":
+      return <CloseConversationForm />;
   }
 }

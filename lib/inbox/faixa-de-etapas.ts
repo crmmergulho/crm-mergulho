@@ -192,6 +192,19 @@ export interface FaixaDeEtapas {
   etapas: EtapaDaFaixa[];
 }
 
+/**
+ * As etapas que a faixa mostra para quem pediu (Mergulho, 25/11/2026). Sem
+ * `verPerdidas`, sai toda etapa de PERDA (`perdida`, que vem de
+ * `crm_stages.is_lost`); as outras seguem na mesma ordem. Quem decide quem vê é
+ * a rota, pelo papel; aqui fica só o recorte, para o teste não depender de sessão.
+ */
+export function etapasDaFaixaParaOPapel(
+  etapas: readonly EtapaDaFaixa[],
+  verPerdidas: boolean,
+): EtapaDaFaixa[] {
+  return verPerdidas ? [...etapas] : etapas.filter((etapa) => !etapa.perdida);
+}
+
 /** O que o filtro atual representa na faixa: uma etapa inteira ou um passo dela. */
 export interface EscolhaDaFaixa {
   etapaId: string;

@@ -25,7 +25,9 @@ export type ActionType =
   // #2642 — o único destino que não é o lead: a EQUIPE.
   | "notify_team"
   // #3881 — a automação escolhe a FILA da conversa (módulo `setores`).
-  | "define_sector";
+  | "define_sector"
+  // Mergulho (25/11/2026) — a regra fecha a conversa do contato.
+  | "close_conversation";
 
 export const TRIGGER_LABELS: Record<TriggerEvent, string> = {
   "lead.created": "Quando entrar um contato novo (webhook)",
@@ -106,6 +108,9 @@ export const ACTION_LABELS: Record<ActionType, string> = {
   // #3881 — a frase diz o que muda na operação (a conversa passa a ser
   // distribuída para quem atende aquele setor) e não fala em "sector_id".
   define_sector: "Definir o setor da conversa",
+  // Mergulho (25/11/2026) — a frase diz o efeito na operação: a conversa sai
+  // da Fila e de Minhas. Não fala com o cliente.
+  close_conversation: "Fechar a conversa (sem mensagem ao cliente)",
 };
 
 /**

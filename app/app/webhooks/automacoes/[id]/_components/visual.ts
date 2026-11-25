@@ -4,6 +4,7 @@ import {
   Bell,
   Brain,
   CalendarCheck,
+  CheckCircle,
   EnvelopeSimple,
   FlowArrow,
   Funnel,
@@ -74,6 +75,9 @@ export const VISUAL_DA_ACAO: Record<ActionType, VisualDaCaixa> = {
   // aponta para onde a conversa vai, e INFO porque é escrita no card (como
   // atribuir e mover de etapa), não mensagem.
   define_sector: { icon: Signpost, paleta: "Setor da conversa", ...INFO },
+  // Mergulho (25/11/2026) — CheckCircle porque fechar é dar o atendimento por
+  // encerrado, e INFO porque muda o estado da conversa sem mandar mensagem.
+  close_conversation: { icon: CheckCircle, paleta: "Fechar a conversa", ...INFO },
 };
 
 /** A ordem da paleta: a mesma do seletor "Adicionar ação" do editor de hoje. */

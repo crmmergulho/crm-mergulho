@@ -28,11 +28,13 @@ import { fail, ok } from "@/lib/api/wrappers";
 import { idsDosCanaisDesativados } from "@/lib/channels/desativado";
 import { loadAuthUser } from "@/lib/auth/server";
 import { orgAtivaDaApi } from "@/lib/auth/require-role";
+import { roleAtLeast } from "@/lib/auth/types";
 import { traduzir } from "@/lib/i18n/dicionario";
 import { CONVERSATION_TERMINAL_STATUSES } from "@/lib/schemas";
 import { aplicarMarcadores } from "@/lib/inbox/marcador-da-conversa";
 import {
   corDaEtapa,
+  etapasDaFaixaParaOPapel,
   etiquetasDasEtapas,
   etiquetasDeContatoNasRegras,
   passosDaEtapa,
@@ -41,6 +43,7 @@ import {
   type PassoDaFaixa,
   type RegraParaAFaixa,
 } from "@/lib/inbox/faixa-de-etapas";
+import { ETAPA_DE_PERDA_NA_FAIXA_DA_ATENDENTE } from "@/lib/inbox/abas-da-mergulho";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -189,6 +192,12 @@ export async function GET(req: NextRequest): Promise<Response> {
     }),
   );
 
-  const resposta: FaixaDeEtapas = { funil: { id: funil.id, nome: funil.name }, etapas: linhas };
+  // Mergulho (25/11/2026): a etapa de perda não aparece para a Atendente
+  // (`lib/inbox/abas-da-mergulho.ts`). Só esconde o botão: não é permissão.
+  const verPerdidas = ETAPA_DE_PERDA_NA_FAIXA_DA_ATENDENTE || roleAtLeast(activeOrg.role, "manager");
+  const resposta: FaixaDeEtapas = {
+    funil: { id: funil.id, nome: funil.name },
+    etapas: etapasDaFaixaParaOPapel(linhas, verPerdidas),
+  };
   return ok(resposta, { requestId });
 }

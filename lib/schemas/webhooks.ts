@@ -546,6 +546,16 @@ const acoesFixas = [
    * existe não ganha comportamento novo, e a escolha feita por uma pessoa não é
    * apagada por uma regra sem que alguém tenha marcado a caixa.
    */
+  /**
+   * Mergulho (25/11/2026) — a regra FECHA a conversa do contato (a do evento,
+   * ou todas as em andamento dele), pela mesma função do botão Fechar. Não tem o
+   * que configurar: fechar não envia nada, e a conversa reabre quando o cliente
+   * escreve. Ver `lib/automation/actions/close-conversation.ts`.
+   */
+  z.object({
+    type: z.literal("close_conversation"),
+    config: z.object({}),
+  }),
   z.object({
     type: z.literal("define_sector"),
     config: z.object({

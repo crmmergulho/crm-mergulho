@@ -7,6 +7,8 @@ import "@/lib/automation/actions/apply-task-plan";
 import "@/lib/automation/actions/set-lead-date-field";
 import "@/lib/automation/actions/assign-owner";
 import "@/lib/automation/actions/define-sector";
+// Mergulho (25/11/2026) — a regra fecha a conversa do contato.
+import "@/lib/automation/actions/close-conversation";
 import "@/lib/automation/actions/create-or-move-lead";
 import "@/lib/automation/actions/create-task";
 import "@/lib/automation/actions/call-webhook";

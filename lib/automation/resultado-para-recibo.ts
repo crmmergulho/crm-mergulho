@@ -80,6 +80,8 @@ const CODIGOS_DAS_ACOES = new Set([
   "sem_alvo",
   "sem_compromisso",
   "sem_contato",
+  /* Mergulho (25/11/2026) — a ação `close_conversation`. */
+  "nenhuma_conversa_aberta",
   /* #3881 — a ação `define_sector`: a régua da fila recusa com código próprio. */
   "conversa_encerrada",
   "conversa_nao_encontrada",
