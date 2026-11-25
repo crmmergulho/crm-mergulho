@@ -498,6 +498,9 @@ export const AUDIT_ACTIONS = [
   "conversation.snoozed",
   "conversation.snooze_cancelled",
   "conversation.snooze_watcher_run",
+  // Mergulho (migration 9349): rodada do cron que abre/resolve o aviso "cliente
+  // esperando resposta" — só quando abriu ou resolveu algum.
+  "conversation.cliente_esperando_run",
   // Rodada do cron que devolve ao agente o handoff parado além do prazo da
   // organização — só quando devolveu (ou falhou) alguma.
   "conversation.handoff_auto_return_run",

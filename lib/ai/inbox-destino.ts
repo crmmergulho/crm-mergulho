@@ -203,6 +203,9 @@ export const POLITICAS_DE_AVISO = {
   // `conversation`: quem pode ver a conversa pode responder; não há "dono" a quem
   // mandar, porque a conversa recuperada pode não ter responsável.
   cliente_sem_resposta_na_queda: { refs: ["conversation"], orientacao: "Abra a conversa e responda o cliente — ele escreveu enquanto o número estava fora do ar." },
+  // Mergulho (migration 9349). Nasce SEMPRE com `ref_kind: conversation`; papel
+  // agent pela entrada `conversation`. Some sozinho quando alguém responde.
+  cliente_esperando: { refs: ["conversation"], orientacao: "Abra a conversa e responda o cliente — ele está esperando. Este aviso some sozinho quando alguém responder." },
   // (migration 9027, issue #3371) O aviso nasce SEM referência: o que o conserta
   // não é uma linha do banco, é o login da conta — e o login mora na tela de
   // Credenciais. O botão diz o que fazer ("Reconectar"), não "revisar", porque
@@ -235,6 +238,8 @@ const ROTULO_POR_KIND: Record<string, string> = {
   // O aviso é sobre o que o cliente escreveu ali: a ação é ler e decidir.
   jev_pedido_de_humano: "Abrir a conversa",
   jev_parar_de_receber: "Abrir a conversa",
+  // Mergulho (migration 9349): o aviso pede uma resposta, não uma conferência.
+  cliente_esperando: "Responder o cliente",
 };
 
 const SEM_DESTINO: DestinoDoAviso = { estado: "sem_destino", orientacao: "Este aviso não tem um contexto que possa ser aberto nesta versão." };

@@ -10,6 +10,9 @@
  *     recarga (`lib/agent-engine/queue/espera-de-saldo.ts`);
  *   - a IA rascunhou uma proposta que só uma pessoa pode revisar e enviar
  *     (`lib/propostas/aviso-de-revisao.ts`);
+ *   - (Mergulho) o cliente espera resposta há N minutos sem que ninguém da
+ *     equipe tenha respondido (`lib/inbox/cliente-esperando.ts`) — vai ao
+ *     responsável pela conversa (`para_user_id`) ou, sem ele, ao time;
  *   - um negócio entrou numa etapa que avisa (migration 0440) — com o valor
  *     do negócio no título e quantos entraram hoje no corpo
  *     (`./push-de-venda.ts`), para quem PODE VER aquele negócio: a gestão vê
@@ -249,6 +252,22 @@ async function montarPush(admin: SupabaseClient, orgId: string, item: Aviso): Pr
     return {
       payload: {
         title: truncar(item.title),
+        body,
+        corpoSemPrevia: body,
+        tag,
+        href: destinoDaPassagem(item),
+      },
+    };
+  }
+
+  // Mergulho (migration 9349): o cliente espera resposta. Título fixo, sem nome
+  // de ninguém (o título do aviso tem o prazo, o corpo tem o horário — ficam na
+  // Central); o toque abre a conversa.
+  if (item.kind === "cliente_esperando") {
+    const body = traduzir("Abra a conversa para responder o cliente.", idioma);
+    return {
+      payload: {
+        title: traduzir("Um cliente está esperando resposta", idioma),
         body,
         corpoSemPrevia: body,
         tag,

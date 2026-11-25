@@ -58,6 +58,9 @@ CRONS="
 * * * * *|25|api/v1/cron/followup-flow-worker
 * * * * *|45|api/v1/cron/event-log-drain
 * * * * *|25|api/v1/cron/routing-worker
+# MERGULHO: o aviso de cliente esperando resposta. Minuto a minuto, porque o prazo
+# e de 20 minutos e o aviso tem de chegar na hora; a consulta e uma funcao barata.
+* * * * *|25|api/v1/cron/cliente-esperando
 */5 * * * *|25|api/v1/cron/recover-stuck-messages
 */5 * * * *|25|api/v1/cron/recover-stuck-calls
 * * * * *|25|api/v1/cron/proposta-travada

@@ -147,6 +147,10 @@ export type InboxKind =
   // sem resposta e a Central vazia. UM item por incidente (índice único
   // parcial), fechado sozinho quando o login volta pela tela de Credenciais.
   | 'assinatura_desconectada'
+  // (migration 9349, Mergulho) O cliente espera há N minutos sem resposta de uma
+  // pessoa. Um aberto por conversa (índice único parcial), resolvido sozinho
+  // quando alguém responde — `lib/inbox/cliente-esperando.ts`.
+  | 'cliente_esperando'
   | 'other';
 
 export interface InboxItemRow {

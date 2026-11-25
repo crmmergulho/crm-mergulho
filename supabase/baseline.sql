@@ -10449,6 +10449,12 @@ alter table public.agent_inbox_items
     -- entra na distribuição e este aviso conta a quem cuida do agente que ele
     -- não está passando adiante. Entra NESTA lista (#159, bloco único).
     'routing_ia_wait_expired',
+    -- (migration 9349, Mergulho) O cliente espera há N minutos sem resposta de
+    -- uma pessoa (mensagem automática, de campanha ou da IA não conta). O cron
+    -- `cliente-esperando` abre um aviso por conversa e o resolve quando alguém
+    -- responde; o push dos avisos o leva ao navegador. Entra NESTA lista (#159,
+    -- bloco único).
+    'cliente_esperando',
     'other'
   ));
 
@@ -75876,6 +75882,65 @@ create trigger trg_contacts_fusao_e_anonimizacao_so_pelo_servidor_ao_criar
 -- Todo escritor da fila de remoção de arquivos é do servidor: a sessão só lê.
 revoke all on table public.storage_redaction_queue from authenticated;
 grant select on table public.storage_redaction_queue to authenticated;
+
+-- ---- aviso de cliente esperando resposta: índice e função (migration 9349) ----
+--
+-- Personalização da Mergulho: ver o cabeçalho da migration 9349. O kind
+-- `cliente_esperando` entrou no bloco ÚNICO de `agent_inbox_items_kind_check`
+-- (#159); aqui ficam o índice de um aviso aberto por conversa e a função que o
+-- cron `cliente-esperando` chama. Entra ANTES da VARREDURA anon porque cria
+-- função. Idempotente (`if not exists` + `create or replace`).
+-- Um aviso ABERTO (ou visto) por conversa: a rodada seguinte não duplica, e é o
+-- banco que fecha a corrida entre duas rodadas (o cron trata o 23505).
+create unique index if not exists agent_inbox_cliente_esperando_aberto_unico
+  on public.agent_inbox_items (organization_id, ref_id)
+  where kind = 'cliente_esperando' and status <> 'resolved';
+
+create or replace function public.fn_conversas_com_cliente_esperando(p_minutos integer, p_horas_max integer)
+returns table (organization_id uuid, conversation_id uuid, assigned_to_user_id uuid, esperando_desde timestamptz)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select c.organization_id, c.id, c.assigned_to_user_id, w.esperando_desde
+    from public.conversations c
+    join public.organizations o on o.id = c.organization_id
+    left join public.contacts ct on ct.id = c.contact_id and ct.organization_id = c.organization_id
+    cross join lateral (
+      select min(m.created_at) as esperando_desde
+        from public.messages m
+       where m.organization_id = c.organization_id
+         and m.conversation_id = c.id
+         and m.direction = 'inbound'
+         and m.created_at > coalesce((
+               select max(h.created_at)
+                 from public.messages h
+                where h.organization_id = c.organization_id
+                  and h.conversation_id = c.id
+                  and h.direction = 'outbound'
+                  and h.sent_via in ('user', 'external_device', 'crm')
+             ), '-infinity'::timestamptz)
+    ) w
+   where c.status not in ('closed', 'archived')
+     and coalesce(c.is_group, false) = false
+     and c.last_inbound_at > now() - make_interval(hours => greatest(p_horas_max, 1))
+     and w.esperando_desde is not null
+     and w.esperando_desde <= now() - make_interval(mins => greatest(p_minutos, 1))
+     and w.esperando_desde >  now() - make_interval(hours => greatest(p_horas_max, 1))
+     and not coalesce(ct.is_personal, false)
+     and not coalesce(ct.is_blocked, false)
+     and not coalesce(
+       ct.tags && (case
+         when jsonb_typeof(o.settings -> 'crm' -> 'internal_contact_tags') = 'array'
+           then array(select jsonb_array_elements_text(o.settings -> 'crm' -> 'internal_contact_tags'))
+         else '{}'::text[]
+       end),
+       false)
+$$;
+
+revoke execute on function public.fn_conversas_com_cliente_esperando(integer, integer) from public, anon, authenticated;
+grant  execute on function public.fn_conversas_com_cliente_esperando(integer, integer) to service_role;
 
 -- ---- VARREDURA anon: função nova nasce exposta em quem ATUALIZA (migration 0116) ----
 --

@@ -72,6 +72,9 @@ export function somDoAviso(aviso: { kind: string; ref_kind: string | null; title
   // o modelo, os itens e os preços é decisão de quem responde ao cliente. Sem
   // este som o rascunho ficava esperando, e o aviso não existia fora da Central.
   if (aviso.kind === "proposta_pronta_para_revisao") return "pessoa";
+  // Mergulho (migration 9349): o cliente espera resposta há N minutos — é
+  // exatamente o aviso que pede uma pessoa, com o CRM aberto ou minimizado.
+  if (aviso.kind === "cliente_esperando") return "pessoa";
   if (ehAvisoDeEtapa(aviso)) return "venda";
   // A IA ficou sem saldo no provedor (`espera-de-saldo.ts`): as respostas estão
   // paradas até alguém recarregar — é o aviso que mais pede uma pessoa.
