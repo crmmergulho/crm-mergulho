@@ -51,14 +51,23 @@ describe("barra do Inbox da Mergulho", () => {
     expect(visibleInboxTabs("agent", "own_and_unassigned")).toEqual(["unassigned", "mine"]);
   });
 
-  it("a Atendente não vê Fechadas nem Arquivadas; a administradora vê", () => {
-    expect(visibleInboxTabs("agent", "all")).toEqual(["unassigned", "mine", "all"]);
+  it("a Atendente não vê Todas, Fechadas nem Arquivadas; a administradora vê", () => {
+    expect(visibleInboxTabs("agent", "all")).toEqual(["unassigned", "mine"]);
+    expect(visibleInboxTabs("agent", "own_and_sector")).toEqual(["unassigned", "mine"]);
     expect(visibleInboxTabs("admin", "all")).toEqual(["unassigned", "mine", "all", "closed", "archived"]);
     expect(visibleInboxTabs("manager", "own_and_unassigned")).toContain("closed");
+    expect(visibleInboxTabs("manager", "own_and_unassigned")).toContain("all");
   });
 
   it("na tela, a Atendente vê só Fila e Minhas", () => {
     activeOrgRef.current = { orgId: "org-1", name: "Org", role: "agent", visibility_mode: "own_and_unassigned" };
+    render(<InboxFilters value={VALUE} onChange={() => {}} />);
+    const abas = screen.getAllByRole("tab").map((el) => (el.textContent ?? "").replace(/\d+$/, "").trim());
+    expect(abas).toEqual(["Fila", "Minhas"]);
+  });
+
+  it("Mergulho 25/11 — mesmo com 'Todos veem tudo', a Atendente não ganha a aba Todas", () => {
+    activeOrgRef.current = { orgId: "org-1", name: "Org", role: "agent", visibility_mode: "all" };
     render(<InboxFilters value={VALUE} onChange={() => {}} />);
     const abas = screen.getAllByRole("tab").map((el) => (el.textContent ?? "").replace(/\d+$/, "").trim());
     expect(abas).toEqual(["Fila", "Minhas"]);

@@ -100,6 +100,12 @@ export async function buscarCandidatos(
      * campos do negócio valem a consulta é o mapa de variáveis (migration 0710).
      */
     lerCamposDoNegocio?: boolean;
+    /**
+     * A campanha que está sendo preparada: os destinatários DELA não contam no
+     * filtro de lotes (`sem_campanha_ha_dias`), senão preparar de novo a mesma
+     * campanha tiraria a lista inteira dela mesma.
+     */
+    campanhaId?: string;
   },
 ): Promise<{ candidatos: CandidatoDaAudiencia[]; truncado: boolean }> {
   const { organizationId, filtro, agora } = entrada;
@@ -185,6 +191,20 @@ export async function buscarCandidatos(
   //   * com recorte de negócio, a consulta é fatiada por `buscaEmLotes`;
   //   * sem ele, a consulta é única e paginada por `max_rows`, parando cedo.
   const excluidos = new Set(filtro.excluir_contatos);
+  // Lotes (Mergulho): quem recebeu outra campanha no período, ou está numa
+  // campanha não concluída, sai ANTES do teto — ver `sem_campanha_ha_dias`.
+  // Entra no conjunto que o recorte já filtra em memória; o incluído à mão não
+  // passa por ele (consulta própria, abaixo) e continua entrando. A prévia não
+  // lista essas pessoas como excluídas: elas ficam fora do recorte, como quem
+  // não tem a etiqueta pedida.
+  if (filtro.sem_campanha_ha_dias !== null) {
+    const foraDoLote = await contatosForaDoLote(admin, {
+      organizationId,
+      desde: limiteDeSilencio(filtro.sem_campanha_ha_dias, agora),
+      exceto: entrada.campanhaId,
+    });
+    for (const id of foraDoLote) excluidos.add(id);
+  }
   const consultaDeContatos = () => {
     let consulta = admin
       .from("contacts")
@@ -459,6 +479,87 @@ export async function contatosJaEmCampanha(
     .in("campaign_id", ids);
   if (erroDest) throw new Error(`audiência: comprometidos — ${erroDest.message}`);
   return new Set((data ?? []).map((r) => (r as { contact_id: string }).contact_id));
+}
+
+/**
+ * Quem fica FORA do lote (`sem_campanha_ha_dias`, Mergulho 25/11/2026):
+ *  - recebeu mensagem de outra campanha desde `desde` (`sent_at`, que fica
+ *    gravado também em quem depois foi entregue, lido ou respondeu), e
+ *  - está em outra campanha ainda não concluída (`CAMPANHAS_VIVAS`), com
+ *    qualquer situação — é o MESMO universo do veto "já em campanha"
+ *    (`contatosJaEmCampanha`), para o teto nunca reservar vaga para quem o
+ *    veto vai tirar depois.
+ *
+ * As duas leituras paginam por keyset em `id`: uma lista de campanha passa de
+ * `max_rows` com facilidade, e a página CURTA não prova o fim (#2404) — só a
+ * vazia.
+ */
+export async function contatosForaDoLote(
+  admin: SupabaseClient,
+  entrada: { organizationId: string; desde: Date; exceto?: string },
+): Promise<Set<string>> {
+  const fora = new Set<string>();
+
+  let vivas = admin
+    .from("campaigns")
+    .select("id")
+    .eq("organization_id", entrada.organizationId)
+    .in("status", CAMPANHAS_VIVAS);
+  if (entrada.exceto) vivas = vivas.neq("id", entrada.exceto);
+  const { data: campanhas, error } = await vivas;
+  if (error) throw new Error(`audiência: lotes — campanhas vivas — ${error.message}`);
+  const idsVivas = (campanhas ?? []).map((c) => (c as { id: string }).id);
+
+  const paginar = async (
+    rotulo: string,
+    consulta: (depoisDe: string | null) => PromiseLike<{
+      data: unknown[] | null;
+      error: { message: string } | null;
+    }>,
+  ): Promise<void> => {
+    let depoisDe: string | null = null;
+    for (;;) {
+      const { data, error: erro } = await consulta(depoisDe);
+      if (erro) throw new Error(`audiência: lotes — ${rotulo} — ${erro.message}`);
+      const linhas = (data ?? []) as Array<{ id: string; contact_id: string | null }>;
+      if (linhas.length === 0) break;
+      for (const l of linhas) if (l.contact_id) fora.add(l.contact_id);
+      const ultimo = linhas[linhas.length - 1]!.id;
+      if (depoisDe !== null && ultimo <= depoisDe) {
+        throw new Error("audiência: audiencia_page_did_not_advance");
+      }
+      depoisDe = ultimo;
+    }
+  };
+
+  if (idsVivas.length > 0) {
+    await paginar("em campanha", (depoisDe) => {
+      let q = admin
+        .from("campaign_recipients")
+        .select("id, contact_id")
+        .eq("organization_id", entrada.organizationId)
+        .in("campaign_id", idsVivas)
+        .order("id", { ascending: true })
+        .limit(PAGINA_DO_POSTGREST);
+      if (depoisDe) q = q.gt("id", depoisDe);
+      return q;
+    });
+  }
+
+  await paginar("receberam", (depoisDe) => {
+    let q = admin
+      .from("campaign_recipients")
+      .select("id, contact_id")
+      .eq("organization_id", entrada.organizationId)
+      .gte("sent_at", entrada.desde.toISOString())
+      .order("id", { ascending: true })
+      .limit(PAGINA_DO_POSTGREST);
+    if (entrada.exceto) q = q.neq("campaign_id", entrada.exceto);
+    if (depoisDe) q = q.gt("id", depoisDe);
+    return q;
+  });
+
+  return fora;
 }
 
 function ordinal(a: string, b: string): number {

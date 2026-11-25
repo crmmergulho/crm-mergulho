@@ -65,6 +65,17 @@ export const filtroDeAudienciaSchema = z
     /** `contacts.source` — de onde o contato veio. */
     origens: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
 
+    /**
+     * LOTES (Mergulho, 25/11/2026): "não recebeu campanha nos últimos N dias".
+     * Tira do recorte, ANTES do teto, quem recebeu mensagem de outra campanha
+     * nesse período e quem está numa campanha ainda não concluída. Com isso uma
+     * lista de 500 sai em lotes: a campanha com "Máximo 200" pega os 200
+     * primeiros, e a seguinte, com o mesmo filtro, os 200 SEGUINTES — sem ele, o
+     * teto pegava de novo os mesmos 200 (o veto "já em campanha" só age DEPOIS
+     * do teto, e a segunda campanha ficava quase vazia).
+     */
+    sem_campanha_ha_dias: z.number().int().min(1).max(3650).nullable().default(null),
+
     /** Contatos a incluir mesmo que o recorte não os pegue. */
     incluir_contatos: z.array(z.string().uuid()).max(5000).default([]),
     /** Contatos a tirar, mesmo que o recorte os pegue. */
@@ -107,6 +118,7 @@ export const FILTRO_VAZIO = {
   cadastrado_de: null,
   cadastrado_ate: null,
   origens: [],
+  sem_campanha_ha_dias: null,
   incluir_contatos: [],
   excluir_contatos: [],
   limite: 500,

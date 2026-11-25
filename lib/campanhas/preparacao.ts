@@ -149,6 +149,8 @@ async function classificar(
     agora: entrada.agora,
     corpo: modelo ? "" : entrada.corpo,
     lerCamposDoNegocio: modelo ? camposDoNegocioUsados(modelo.variaveis).length > 0 : false,
+    // Lotes (`sem_campanha_ha_dias`): os destinatários desta campanha não contam.
+    ...(entrada.campanhaId ? { campanhaId: entrada.campanhaId } : {}),
   });
   // No número oficial, quem já desligou o marketing NA PLATAFORMA sai como quem
   // recusou pelo cadastro: o envio não entregaria e conta como falha do número.

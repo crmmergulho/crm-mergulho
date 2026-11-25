@@ -18,11 +18,20 @@ export const FILTRO_DE_GRUPOS_VISIVEL = false;
 
 /**
  * Abas que a ATENDENTE (papel `agent`) não vê: Fechadas e Arquivadas (pedido de
- * 18/11/2026, feito em 23/11/2026). A administradora continua vendo as duas,
- * para consultar o histórico.
+ * 18/11/2026, feito em 23/11/2026) e Todas (pedido de 24/11/2026, feito em
+ * 25/11/2026). Ela trabalha só com Fila e Minhas. A administradora continua
+ * vendo todas as abas, para consultar o histórico e o que está com cada pessoa.
+ *
+ * Esconder a aba NÃO é o mesmo que mudar a visibilidade. A organização segue em
+ * "Todos veem tudo" (Configurações › Atendimento): se a visibilidade voltasse a
+ * "só as dela + sem dono", a aba Todas também sumiria, mas a Atendente deixaria
+ * de abrir a conversa que está com outra pessoa — foi assim que uma conversa
+ * "sumiu" para a SDR em 23/11.
  *
  * A Atendente não perde conversa: a fechada reabre sozinha quando o cliente
- * escreve (`fn_service_inbound`), e ela abre qualquer conversa dela por
- * Contatos › ícone de balão (`/app/inbox?id=…`) e usa o botão Reabrir.
+ * escreve (`fn_service_inbound`), e ela abre qualquer conversa por
+ * Contatos › ícone de balão (`/app/inbox?id=…`), com o botão Reabrir quando
+ * está fechada e o Assumir quando está sem dono (responder não assume:
+ * "a conversa fica com quem atendeu" está desligado).
  */
-export const ABAS_ESCONDIDAS_DA_ATENDENTE: readonly string[] = ["closed", "archived"];
+export const ABAS_ESCONDIDAS_DA_ATENDENTE: readonly string[] = ["all", "closed", "archived"];

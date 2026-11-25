@@ -5,10 +5,16 @@
  * de 7 mensagens), os mesmos números por passo (personalização da Mergulho,
  * nov/2026; a regra mora em `lib/inbox/faixa-de-etapas.ts`).
  *
- * Contagens pelo client da SESSÃO: herdam a RLS de `crm_leads`, `contacts` e
- * `conversations`, então um atendente em modo "só os meus" vê os números do SEU
- * escopo — a mesma garantia de `/api/v1/conversations/counts`, cuja montagem
- * esta rota repete (canal desativado e contato pessoal fora).
+ * Contagens de CONVERSA e de contato pelo client da SESSÃO: herdam a RLS de
+ * `contacts` e `conversations`, então um atendente em modo "só os meus" vê os
+ * números do SEU escopo — a mesma garantia de `/api/v1/conversations/counts`,
+ * cuja montagem esta rota repete (canal desativado e contato pessoal fora).
+ *
+ * O número de CARDS da etapa é a exceção (Mergulho, 25/11/2026): ele conta TODOS
+ * os cards da etapa na organização, pelo client admin filtrado pela organização
+ * ativa. Pela sessão ele contava só os cards que o perfil enxerga (a SDR via 0
+ * em Novo contato porque o card era da administradora), e por isso tinha saído
+ * da faixa em 23/11. Sai daqui só o NÚMERO por etapa — nenhum card, nome ou dono.
  *
  * As REGRAS de automação são lidas pelo client admin, filtrado pela organização
  * ativa: a rota de regras exige gerente, e o atendente precisa só do nome das
@@ -147,7 +153,9 @@ export async function GET(req: NextRequest): Promise<Response> {
       const etiqueta = etiquetas.get(etapa.id) ?? null;
       const doPasso = etiqueta ? passosDaEtapa(etiqueta, todasAsEtiquetas) : [];
 
-      const { count: cards } = await supabase
+      // Todos os cards da etapa, de qualquer dono (ver o cabeçalho): admin +
+      // organização ativa, e a etapa já veio da leitura pela sessão.
+      const { count: cards } = await admin
         .from("crm_leads")
         .select("id", { count: "exact", head: true })
         .eq("organization_id", org)

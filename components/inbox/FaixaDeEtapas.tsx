@@ -3,9 +3,11 @@
 /**
  * A faixa de etapas no topo do Inbox (personalização da Mergulho, nov/2026).
  *
- * Um botão por etapa do funil, só com o NOME (o número de cards saiu em
- * 23/11/2026, a pedido: contava só os cards que o perfil vê, e confundia). O
- * vermelho, quando aparece, é quantas conversas não lidas os contatos têm. Clicar
+ * Um botão por etapa do funil: o número à esquerda é quantos cards estão na
+ * etapa — TODOS os da organização, de qualquer dono. Ele saiu em 23/11/2026
+ * porque contava só os cards que o perfil vê (a SDR via 0), e voltou em
+ * 25/11/2026 contando todos (a contagem mora na rota). O vermelho, quando
+ * aparece, é quantas conversas não lidas os contatos têm. Clicar
  * aplica a etiqueta-espelho da etapa no MESMO filtro de etiqueta do Inbox (o
  * seletor "Filtrar por tag" mostra a escolha); clicar de novo tira o filtro.
  *
@@ -99,6 +101,9 @@ function BotaoDaEtapa({ etapa, cor, marcada, onEscolher }: BotaoProps) {
       )}
       style={{ backgroundColor: cor }}
     >
+      <span className="rounded bg-black/25 px-1.5 tabular-nums" aria-label={t("cards na etapa")}>
+        {etapa.cards}
+      </span>
       <span>{etapa.nome}</span>
       <NaoLidas total={etapa.novas} rotulo={t("conversas não lidas")} />
     </button>
@@ -129,7 +134,7 @@ export function FaixaDeEtapas({ orgId, filtro, onEscolher }: Props) {
         />
       ))}
       <span className="ml-auto text-xs text-text-muted">
-        {t("Vermelho: conversas não lidas")}
+        {t("Número: cards na etapa · Vermelho: conversas não lidas")}
       </span>
     </div>
   );

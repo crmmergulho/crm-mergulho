@@ -59,6 +59,15 @@ export function EditarCampanha({ id }: { id: string }) {
   const [comAlgumaTag, setComAlgumaTag] = useState("");
   const [semTags, setSemTags] = useState("");
   const [semInteracao, setSemInteracao] = useState("");
+  // Lotes (Mergulho, 25/11/2026) — ver `sem_campanha_ha_dias` em lib/campanhas/audiencia.ts.
+  const [semCampanha, setSemCampanha] = useState("");
+  /**
+   * O filtro como estava gravado. A tela só edita alguns campos; os demais
+   * (funil e etapa do público, contatos incluídos ou tirados à mão, e o que foi
+   * configurado fora da tela) seguem como estavam — antes, salvar a edição
+   * mandava só os campos da tela e apagava o resto do filtro.
+   */
+  const [filtroGravado, setFiltroGravado] = useState<Record<string, unknown>>({});
   const [limite, setLimite] = useState("100");
   const [texto, setTexto] = useState("");
   const [funil, setFunil] = useState("");
@@ -84,6 +93,8 @@ export function EditarCampanha({ id }: { id: string }) {
     setComAlgumaTag(juntar(f.com_alguma_tag));
     setSemTags(juntar(f.sem_tags));
     setSemInteracao(f.sem_interacao_ha_dias == null ? "" : String(f.sem_interacao_ha_dias));
+    setSemCampanha(f.sem_campanha_ha_dias == null ? "" : String(f.sem_campanha_ha_dias));
+    setFiltroGravado(f);
     setLimite(f.limite == null ? "100" : String(f.limite));
     setTexto(c.message_body ?? "");
     setModelo(
@@ -103,12 +114,14 @@ export function EditarCampanha({ id }: { id: string }) {
 
   const filtro = useMemo(
     () => ({
+      ...filtroGravado,
       com_alguma_tag: listar(comAlgumaTag),
       sem_tags: listar(semTags),
       sem_interacao_ha_dias: semInteracao ? Number(semInteracao) : null,
+      sem_campanha_ha_dias: semCampanha ? Number(semCampanha) : null,
       limite: Number(limite) || 100,
     }),
-    [comAlgumaTag, semTags, semInteracao, limite],
+    [filtroGravado, comAlgumaTag, semTags, semInteracao, semCampanha, limite],
   );
 
   const temCriterio =
@@ -274,6 +287,19 @@ export function EditarCampanha({ id }: { id: string }) {
               value={semInteracao}
               onChange={(e) => setSemInteracao(e.target.value)}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="e-sem-campanha">{t("Não recebeu campanha nos últimos (dias)")}</Label>
+            <Input
+              id="e-sem-campanha"
+              type="number"
+              min={1}
+              value={semCampanha}
+              onChange={(e) => setSemCampanha(e.target.value)}
+            />
+            <p className="text-xs text-text-muted">
+              {t("Para mandar em lotes: com o Máximo de contatos, cada campanha nova pega os próximos da lista.")}
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="e-limite">{t("Máximo de contatos nesta campanha")}</Label>

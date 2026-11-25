@@ -60,6 +60,8 @@ export function NovaCampanha({ emailLigado = false }: { emailLigado?: boolean })
   const [comAlgumaTag, setComAlgumaTag] = useState("");
   const [semTags, setSemTags] = useState("");
   const [semInteracao, setSemInteracao] = useState("");
+  // Lotes (Mergulho, 25/11/2026) — ver `sem_campanha_ha_dias` em lib/campanhas/audiencia.ts.
+  const [semCampanha, setSemCampanha] = useState("");
   const [limite, setLimite] = useState("100");
   const [texto, setTexto] = useState("");
   const [intervalo, setIntervalo] = useState("");
@@ -121,11 +123,12 @@ export function NovaCampanha({ emailLigado = false }: { emailLigado?: boolean })
       com_alguma_tag: listar(comAlgumaTag),
       sem_tags: listar(semTags),
       sem_interacao_ha_dias: semInteracao ? Number(semInteracao) : null,
+      sem_campanha_ha_dias: semCampanha ? Number(semCampanha) : null,
       funis: funilDoPublico ? [funilDoPublico] : [],
       etapas: etapaDoPublico ? [etapaDoPublico] : [],
       limite: Number(limite) || 100,
     }),
-    [comAlgumaTag, semTags, semInteracao, funilDoPublico, etapaDoPublico, limite],
+    [comAlgumaTag, semTags, semInteracao, semCampanha, funilDoPublico, etapaDoPublico, limite],
   );
 
   const temCriterio =
@@ -393,6 +396,19 @@ export function NovaCampanha({ emailLigado = false }: { emailLigado?: boolean })
               value={semInteracao}
               onChange={(e) => setSemInteracao(e.target.value)}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="sem-campanha">{t("Não recebeu campanha nos últimos (dias)")}</Label>
+            <Input
+              id="sem-campanha"
+              type="number"
+              min={1}
+              value={semCampanha}
+              onChange={(e) => setSemCampanha(e.target.value)}
+            />
+            <p className="text-xs text-text-muted">
+              {t("Para mandar em lotes: com o Máximo de contatos, cada campanha nova pega os próximos da lista.")}
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="pub-funil">{t("Com negócio no funil")}</Label>
