@@ -38,10 +38,13 @@ vi.mock("@/hooks/channels/useChannelSessions", () => ({
   useChannelSessions: () => ({ data: [], isLoading: false }),
   channelLabel: (c: { display_name?: string | null }) => c.display_name ?? "Número sem nome",
 }));
+const padroesDaEmpresa = vi.hoisted(() => ({ valor: null as null | Record<string, number | null> }));
+
 vi.mock("@/hooks/campanhas/useDestinoDaCampanha", () => ({
   useFunis: () => ({ data: [], isLoading: false }),
   useEtapas: () => ({ data: [], isLoading: false }),
   useAgentesPublicados: () => ({ data: [], isLoading: false }),
+  usePadroesDaCampanha: () => ({ data: padroesDaEmpresa.valor, isLoading: false }),
 }));
 
 const AVISO = /bateu o teto de 20\.000 negócios desta prévia/;
@@ -89,5 +92,34 @@ describe("nova campanha: a opção E-mail segue o módulo campanha_por_email", (
     fireEvent.click(radio);
     expect(screen.getByLabelText("Assunto do e-mail")).toBeInTheDocument();
     expect(screen.queryByLabelText("Enviar pelo número")).not.toBeInTheDocument();
+  });
+});
+
+describe("Mergulho 26/11 — a campanha nova abre com o ritmo padrão da empresa", () => {
+  beforeEach(() => {
+    padroesDaEmpresa.valor = null;
+  });
+
+  it("com padrões gravados, os campos do ritmo já vêm preenchidos e a tela diz de onde veio", () => {
+    padroesDaEmpresa.valor = {
+      intervalo_segundos: 1800,
+      teto_diario: 20,
+      teto_horario: 2,
+      janela_inicio_hora: 8,
+      janela_fim_hora: 18,
+    };
+    render(<NovaCampanha />);
+    expect(screen.getByLabelText("Intervalo mínimo entre mensagens (segundos)")).toHaveValue(1800);
+    expect(screen.getByLabelText("Máximo por dia")).toHaveValue(20);
+    expect(screen.getByLabelText("Máximo por hora")).toHaveValue(2);
+    expect(screen.getByLabelText("Enviar só a partir das (hora)")).toHaveValue(8);
+    expect(screen.getByLabelText("Parar de enviar às (hora)")).toHaveValue(18);
+    expect(screen.getByTestId("ritmo-dos-padroes")).toBeInTheDocument();
+  });
+
+  it("sem padrões, tudo segue em branco como antes", () => {
+    render(<NovaCampanha />);
+    expect(screen.getByLabelText("Máximo por dia")).toHaveValue(null);
+    expect(screen.queryByTestId("ritmo-dos-padroes")).not.toBeInTheDocument();
   });
 });

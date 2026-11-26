@@ -30,7 +30,12 @@ import {
 } from "@/hooks/campanhas/useCampanhas";
 import { channelLabel, useChannelSessions } from "@/hooks/channels/useChannelSessions";
 import { useT } from "@/hooks/i18n/useT";
-import { useAgentesPublicados, useEtapas, useFunis } from "@/hooks/campanhas/useDestinoDaCampanha";
+import {
+  useAgentesPublicados,
+  useEtapas,
+  useFunis,
+  usePadroesDaCampanha,
+} from "@/hooks/campanhas/useDestinoDaCampanha";
 import { SeletorDeVariavel } from "@/components/variaveis/SeletorDeVariavel";
 import { PreviaComValores } from "@/components/variaveis/PreviaComValores";
 
@@ -69,6 +74,33 @@ export function NovaCampanha({ emailLigado = false }: { emailLigado?: boolean })
   const [janelaFim, setJanelaFim] = useState("");
   const [tetoDiario, setTetoDiario] = useState("");
   const [tetoHorario, setTetoHorario] = useState("");
+  /**
+   * Mergulho (26/11/2026): a campanha nova abre com o ritmo PADRÃO da empresa
+   * (Campanhas › Configurações), uma vez, só nos campos ainda vazios. Antes ela
+   * abria em branco, e em branco vale o ritmo do número — rápido demais para um
+   * número que acabou de ser restringido. Ajuste de estado no render (com a
+   * trava `padroesAplicados`), e não num efeito: os valores chegam uma vez só.
+   */
+  const padroes = usePadroesDaCampanha();
+  const [padroesAplicados, setPadroesAplicados] = useState(false);
+  if (!padroesAplicados && padroes.data) {
+    setPadroesAplicados(true);
+    const p = padroes.data;
+    if (p.intervalo_segundos != null && intervalo === "") setIntervalo(String(p.intervalo_segundos));
+    if (p.teto_diario != null && tetoDiario === "") setTetoDiario(String(p.teto_diario));
+    if (p.teto_horario != null && tetoHorario === "") setTetoHorario(String(p.teto_horario));
+    if (p.janela_inicio_hora != null && janelaInicio === "") setJanelaInicio(String(p.janela_inicio_hora));
+    if (p.janela_fim_hora != null && janelaFim === "") setJanelaFim(String(p.janela_fim_hora));
+  }
+  const veioDosPadroes =
+    !!padroes.data &&
+    [
+      padroes.data.intervalo_segundos,
+      padroes.data.teto_diario,
+      padroes.data.teto_horario,
+      padroes.data.janela_inicio_hora,
+      padroes.data.janela_fim_hora,
+    ].some((v) => v != null);
   const [extras, setExtras] = useState<string[]>([]);
   const [funil, setFunil] = useState("");
   const [etapa, setEtapa] = useState("");
@@ -657,6 +689,11 @@ export function NovaCampanha({ emailLigado = false }: { emailLigado?: boolean })
             "Em branco, vale o ritmo do número (Conexões › Proteção de envio). O que você puser aqui só pode deixar mais devagar.",
           )}
         </p>
+        {veioDosPadroes && (
+          <p className="text-sm text-muted-foreground" data-testid="ritmo-dos-padroes">
+            {t("Já veio preenchido com o ritmo padrão da empresa (Campanhas › Configurações). Pode ajustar para esta campanha.")}
+          </p>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           {velocidadeEfetiva === "gradual" && (
             <div className="space-y-2">

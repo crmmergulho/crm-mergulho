@@ -13,11 +13,18 @@
  *
  * Só leitura, pela sessão (a RLS de leitura de funil, etapa e agente é da equipe
  * inteira), sempre com a organização do papel. Devolve só o que a tela usa.
+ *
+ * Mergulho (26/11/2026): devolve também os PADRÕES de ritmo da empresa
+ * (`settings.campanhas`, Campanhas › Configurações), para a campanha nova já
+ * abrir com eles preenchidos. Antes a tela abria em branco, e em branco a
+ * campanha segue o ritmo do número — que, com o número aquecido, é rápido.
  */
 import { randomUUID } from "node:crypto";
 
 import { fail, ok } from "@/lib/api/wrappers";
+import { lerConfiguracao } from "@/lib/campanhas/configuracao";
 import { exigirPapelDeCampanhas } from "@/lib/campanhas/quem-usa-campanhas";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +51,18 @@ interface LinhaDoAgente {
   archived_at: string | null;
 }
 
+/** Só o ritmo: a janela de atribuição dos padrões não é da tela de campanha nova. */
+function padroesDoRitmo(settings: unknown) {
+  const c = lerConfiguracao(settings);
+  return {
+    intervalo_segundos: c.intervalo_segundos,
+    teto_diario: c.teto_diario,
+    teto_horario: c.teto_horario,
+    janela_inicio_hora: c.janela_inicio_hora,
+    janela_fim_hora: c.janela_fim_hora,
+  };
+}
+
 export async function GET(): Promise<Response> {
   const requestId = randomUUID();
   const authz = await exigirPapelDeCampanhas({ requestId });
@@ -51,7 +70,7 @@ export async function GET(): Promise<Response> {
   const org = authz.org.orgId;
   const supabase = await createClient();
 
-  const [funis, etapas, agentes] = await Promise.all([
+  const [funis, etapas, agentes, empresa] = await Promise.all([
     supabase
       .from("crm_pipelines")
       .select("id, name, is_default")
@@ -71,8 +90,10 @@ export async function GET(): Promise<Response> {
       .eq("organization_id", org)
       .not("published_version_id", "is", null)
       .is("archived_at", null),
+    // Os padrões moram em `organizations.settings`; a organização é a do papel.
+    createAdminClient().from("organizations").select("settings").eq("id", org).maybeSingle(),
   ]);
-  if (funis.error || etapas.error || agentes.error) {
+  if (funis.error || etapas.error || agentes.error || empresa.error) {
     return fail("internal_error", "Failed to read campaign destinations.", 500, { requestId });
   }
 
@@ -92,6 +113,7 @@ export async function GET(): Promise<Response> {
         etapas: etapasPorFunil.get(f.id) ?? [],
       })),
       agentes: (agentes.data ?? []) as LinhaDoAgente[],
+      padroes: padroesDoRitmo((empresa.data as { settings?: unknown } | null)?.settings),
     },
     { requestId },
   );

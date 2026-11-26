@@ -39,9 +39,19 @@ export interface AgenteDisponivel {
   archived_at?: string | null;
 }
 
+/** O ritmo padrão da empresa (Campanhas › Configurações). `null` = herda o número. */
+export interface PadroesDaCampanha {
+  intervalo_segundos: number | null;
+  teto_diario: number | null;
+  teto_horario: number | null;
+  janela_inicio_hora: number | null;
+  janela_fim_hora: number | null;
+}
+
 interface DestinosDaCampanha {
   funis: Array<FunilDaCampanha & { etapas: EtapaDoFunil[] }>;
   agentes: AgenteDisponivel[];
+  padroes?: PadroesDaCampanha;
 }
 
 const CHAVE = ["campanhas-destinos"] as const;
@@ -67,6 +77,16 @@ export function useEtapas(pipelineId: string | null) {
     enabled: !!pipelineId,
     staleTime: 60_000,
     select: (d): EtapaDoFunil[] => d.funis.find((f) => f.id === pipelineId)?.etapas ?? [],
+  });
+}
+
+/** Mergulho (26/11/2026): o ritmo padrão, para a campanha nova já abrir com ele. */
+export function usePadroesDaCampanha() {
+  return useQuery({
+    queryKey: CHAVE,
+    queryFn: lerDestinos,
+    staleTime: 60_000,
+    select: (d): PadroesDaCampanha | null => d.padroes ?? null,
   });
 }
 

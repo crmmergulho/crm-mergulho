@@ -1346,6 +1346,7 @@ export const DICIONARIO: Traducoes = {
   "Clique para tirar o filtro": { es: "Haz clic para quitar el filtro" },
   "Mostrar só os contatos desta etapa": { es: "Mostrar solo los contactos de esta etapa" },
   "Vermelho: conversas não lidas": { es: "Rojo: conversaciones no leídas" },
+  "Já veio preenchido com o ritmo padrão da empresa (Campanhas › Configurações). Pode ajustar para esta campanha.": { es: "Ya viene completado con el ritmo estándar de la empresa (Campañas › Configuración). Puedes ajustarlo para esta campaña." },
   "Um cliente está esperando resposta": { es: "Un cliente está esperando respuesta" },
   "Abra a conversa e responda o cliente — ele está esperando. Este aviso some sozinho quando alguém responder.": { es: "Abre la conversación y responde al cliente: está esperando. Este aviso desaparece solo cuando alguien responda." },
   "Fechar a conversa (sem mensagem ao cliente)": { es: "Cerrar la conversación (sin mensaje al cliente)" },
