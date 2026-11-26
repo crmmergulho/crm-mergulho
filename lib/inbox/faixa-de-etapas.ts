@@ -193,16 +193,17 @@ export interface FaixaDeEtapas {
 }
 
 /**
- * As etapas que a faixa mostra para quem pediu (Mergulho, 25/11/2026). Sem
- * `verPerdidas`, sai toda etapa de PERDA (`perdida`, que vem de
- * `crm_stages.is_lost`); as outras seguem na mesma ordem. Quem decide quem vê é
- * a rota, pelo papel; aqui fica só o recorte, para o teste não depender de sessão.
+ * As etapas que a faixa mostra para quem pediu (Mergulho). Sem `verFim`, saem as
+ * etapas de FIM: perda (`perdida`, de `crm_stages.is_lost`, desde 25/11/2026) e
+ * ganho (`ganha`, de `crm_stages.is_won` — Matriculado, desde 26/11/2026); as
+ * outras seguem na mesma ordem. Quem decide quem vê é a rota, pelo papel; aqui
+ * fica só o recorte, para o teste não depender de sessão.
  */
 export function etapasDaFaixaParaOPapel(
   etapas: readonly EtapaDaFaixa[],
-  verPerdidas: boolean,
+  verFim: boolean,
 ): EtapaDaFaixa[] {
-  return verPerdidas ? [...etapas] : etapas.filter((etapa) => !etapa.perdida);
+  return verFim ? [...etapas] : etapas.filter((etapa) => !etapa.perdida && !etapa.ganha);
 }
 
 /** O que o filtro atual representa na faixa: uma etapa inteira ou um passo dela. */

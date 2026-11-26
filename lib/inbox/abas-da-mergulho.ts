@@ -37,12 +37,14 @@ export const FILTRO_DE_GRUPOS_VISIVEL = false;
 export const ABAS_ESCONDIDAS_DA_ATENDENTE: readonly string[] = ["all", "closed", "archived"];
 
 /**
- * A etapa de PERDA ("Perdido") na faixa de etapas do Inbox: a Atendente não a
- * vê (pedido de 25/11/2026 — "apenas adm veem"). Vale para toda etapa marcada
- * como perda no funil (`crm_stages.is_lost`), nas cinco empresas, e não para o
- * nome: renomear a etapa não a traz de volta. Gerente e administradora seguem
- * vendo. É só a faixa: o quadro do funil e o filtro por etiqueta não mudam.
+ * As etapas de FIM na faixa de etapas do Inbox: a Atendente não as vê. Perdido
+ * saiu em 25/11/2026 ("apenas adm veem") e Matriculado em 26/11/2026 (a matrícula
+ * se marca pela etiqueta `matriculado`, o card vai sozinho para a etapa e a SDR
+ * fecha o atendimento). Vale para toda etapa marcada como perda ou ganho no funil
+ * (`crm_stages.is_lost` / `is_won`), nas cinco empresas, e não para o nome:
+ * renomear a etapa não a traz de volta. Gerente e administradora seguem vendo.
+ * É só a faixa: o quadro do funil não muda.
  *
  * `true` mostra para todos, como no produto.
  */
-export const ETAPA_DE_PERDA_NA_FAIXA_DA_ATENDENTE = false;
+export const ETAPAS_DE_FIM_NA_FAIXA_DA_ATENDENTE = false;

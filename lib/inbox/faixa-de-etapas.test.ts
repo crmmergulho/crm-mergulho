@@ -134,7 +134,7 @@ describe("corDaEtapa", () => {
   });
 });
 
-describe("Mergulho 25/11 — a etapa de perda fora da faixa da Atendente", () => {
+describe("Mergulho 25–26/11 — as etapas de fim (Perdido e Matriculado) fora da faixa da Atendente", () => {
   const etapa = (id: string, nome: string, perdida = false): EtapaDaFaixa => ({
     id,
     nome,
@@ -154,15 +154,11 @@ describe("Mergulho 25/11 — a etapa de perda fora da faixa da Atendente", () =>
     etapa("d", "Reativação"),
   ];
 
-  it("sem permissão de ver perdidas, só a etapa de perda sai — a ganha fica, e a ordem também", () => {
-    expect(etapasDaFaixaParaOPapel(funil, false).map((e) => e.nome)).toEqual([
-      "Novo contato",
-      "Matriculado",
-      "Reativação",
-    ]);
+  it("sem permissão de ver as etapas de fim, saem a de perda E a de ganho; a ordem fica", () => {
+    expect(etapasDaFaixaParaOPapel(funil, false).map((e) => e.nome)).toEqual(["Novo contato", "Reativação"]);
   });
 
-  it("quem pode ver perdidas recebe a faixa inteira", () => {
+  it("quem pode ver as etapas de fim recebe a faixa inteira", () => {
     expect(etapasDaFaixaParaOPapel(funil, true).map((e) => e.nome)).toEqual([
       "Novo contato",
       "Matriculado",

@@ -77,3 +77,17 @@ describe("lerFiltrosDaLista", () => {
     expect(lerFiltrosDaLista(new URLSearchParams("status=archived"))).toEqual({ ok: false, campo: "status" });
   });
 });
+
+describe("Mergulho 26/11 — a lista de UMA etapa (`etapa`)", () => {
+  const ETAPA = "11111111-1111-4111-8111-111111111111";
+
+  it("ida e volta: a etapa sai como `etapa` e volta como `stage`", () => {
+    const p = paramsDosFiltrosDaLista({ status: "open", stage: ETAPA });
+    expect(p).toBe(`status=open&etapa=${ETAPA}`);
+    expect(lerFiltrosDaLista(new URLSearchParams(p))).toEqual({ ok: true, filtros: { status: "open", stage: ETAPA } });
+  });
+
+  it("etapa que não é uuid é erro com o campo, nunca \"todas as etapas\"", () => {
+    expect(lerFiltrosDaLista(new URLSearchParams("etapa=geladeira"))).toEqual({ ok: false, campo: "etapa" });
+  });
+});

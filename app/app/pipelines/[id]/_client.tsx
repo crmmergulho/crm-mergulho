@@ -532,6 +532,16 @@ export function PipelinePageClient({
           pipeline={funilInicial}
           stages={etapasIniciais}
           filtros={filters}
+          // Mergulho (26/11/2026): `?etapa=` vem do clique na faixa de etapas
+          // do Inbox. Só vale se a etapa é deste funil.
+          etapaId={
+            etapasIniciais.some((s) => s.id === searchParams.get("etapa")) ? searchParams.get("etapa") : null
+          }
+          onLimparEtapa={() => {
+            const p = new URLSearchParams(searchParams.toString());
+            p.delete("etapa");
+            router.replace(`${pathname}?${p.toString()}`);
+          }}
         />
       ) : error ? (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm">

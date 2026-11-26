@@ -37,6 +37,13 @@ interface Props {
    * sabe (`filtrosForaDaLista`) — #3172, fatia 2.
    */
   filtros?: LeadFilters;
+  /**
+   * Mergulho (26/11/2026): só os negócios desta etapa — o destino do clique na
+   * faixa de etapas do Inbox. A tela diz qual etapa está mostrando e oferece
+   * voltar para todas (`onLimparEtapa`).
+   */
+  etapaId?: string | null;
+  onLimparEtapa?: () => void;
 }
 
 /** Sem barra (ou barra limpa): o funil inteiro. Fora do componente para ser estável. */
@@ -78,7 +85,14 @@ const SEM_FILTRO: LeadFilters = {};
  * responsável mostrava os mesmos negócios, e quem usava concluía que o filtro
  * estava quebrado.
  */
-export function ListaDoFunil({ pipelineId, pipeline: funil, stages, filtros = SEM_FILTRO }: Props) {
+export function ListaDoFunil({
+  pipelineId,
+  pipeline: funil,
+  stages,
+  filtros = SEM_FILTRO,
+  etapaId = null,
+  onLimparEtapa,
+}: Props) {
   const t = useT();
   const tag = useTagDeIdioma();
   const { data: members } = useAssignableMembers(true);
@@ -87,7 +101,11 @@ export function ListaDoFunil({ pipelineId, pipeline: funil, stages, filtros = SE
     [members],
   );
 
-  const daLista = useMemo(() => filtrosDaLista(filtros), [filtros]);
+  const daLista = useMemo(
+    () => ({ ...filtrosDaLista(filtros), ...(etapaId ? { stage: etapaId } : {}) }),
+    [filtros, etapaId],
+  );
+  const etapaEscolhida = etapaId ? (stages.find((s) => s.id === etapaId) ?? null) : null;
   const chaveDoFiltro = paramsDosFiltrosDaLista(daLista);
   const fora = filtrosForaDaLista(filtros);
 
@@ -156,6 +174,22 @@ export function ListaDoFunil({ pipelineId, pipeline: funil, stages, filtros = SE
 
   return (
     <div className="flex flex-1 flex-col gap-3" data-testid="lista-do-funil">
+      {etapaEscolhida && (
+        <div
+          role="status"
+          data-testid="lista-so-da-etapa"
+          className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm"
+        >
+          <span>
+            {t("Mostrando só a etapa")} <strong>{etapaEscolhida.name}</strong>
+          </span>
+          {onLimparEtapa && (
+            <Button type="button" variant="ghost" size="sm" onClick={onLimparEtapa}>
+              {t("Ver todas as etapas")}
+            </Button>
+          )}
+        </div>
+      )}
       {fora.length > 0 && (
         <div
           role="status"

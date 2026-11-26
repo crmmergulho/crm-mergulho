@@ -413,3 +413,30 @@ describe("o índice da página (migration + apêndice no baseline)", () => {
     expect(baseline).toMatch(/create index if not exists idx_crm_leads_org_pipeline_position_id/i);
   });
 });
+
+describe("Mergulho 26/11 — a lista de UMA etapa (`etapa`)", () => {
+  const GELADEIRA = "22222222-2222-4222-8222-222222222222";
+
+  it("devolve só os negócios da etapa pedida, no banco (antes do `range`)", async () => {
+    authOk();
+    makeDb({
+      leads: [
+        daLista("l1", { position_in_stage: 10 }),
+        daLista("l2", { position_in_stage: 20, stage_id: GELADEIRA }),
+        daLista("l3", { position_in_stage: 30 }),
+        daLista("l4", { position_in_stage: 40, stage_id: GELADEIRA }),
+      ],
+    });
+    const { GET } = await import("./route");
+    const { data } = await corpo(await GET(requisicao(`?page=1&per_page=1&etapa=${GELADEIRA}`), ctx()));
+    expect(data.map((l) => l.id)).toEqual(["l2"]);
+  });
+
+  it("etapa que não é uuid é 422, nunca o funil inteiro", async () => {
+    authOk();
+    makeDb({ leads: [daLista("l1")] });
+    const { GET } = await import("./route");
+    const res = await GET(requisicao("?etapa=geladeira"), ctx());
+    expect(res.status).toBe(422);
+  });
+});

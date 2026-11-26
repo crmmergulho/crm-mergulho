@@ -1,5 +1,5 @@
 /**
- * GET /api/v1/pipelines/[id]/leads?page=&per_page=&owner=&status=
+ * GET /api/v1/pipelines/[id]/leads?page=&per_page=&owner=&status=&etapa=
  *
  * A página da LISTA do funil (#3172, fatia 1): uma fatia dos negócios do funil,
  * lida do banco com `range`, mais o `meta` que diz qual página é e se há
@@ -155,6 +155,8 @@ export async function GET(req: NextRequest, ctx: RouteCtx): Promise<Response> {
   // passou no filtro. "Sem responsável" é sem dono NENHUM — negócio com agente
   // tem dono, a mesma regra do quadro.
   if (filtros.status) consulta = consulta.eq("status", filtros.status);
+  // Mergulho (26/11/2026): a lista de UMA etapa (o clique na faixa do Inbox).
+  if (filtros.stage) consulta = consulta.eq("stage_id", filtros.stage);
   if (filtros.owner) {
     const dono = donoDoFiltro(filtros.owner);
     consulta =

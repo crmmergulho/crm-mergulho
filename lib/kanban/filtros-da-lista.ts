@@ -31,6 +31,12 @@ export interface FiltrosDaLista {
   owner?: string;
   /** Ausente = todos (menos arquivado, que a rota nunca lista). */
   status?: "open" | "won" | "lost";
+  /**
+   * Mergulho (26/11/2026): só os negócios desta ETAPA (uuid). É o destino do
+   * clique na faixa de etapas do Inbox — "clicou, apareceu a lista da etapa".
+   * Na URL vai como `etapa`.
+   */
+  stage?: string;
 }
 
 /** O recorte da barra que a Lista sabe aplicar. "Todos" vira ausência, não valor. */
@@ -51,6 +57,7 @@ export function paramsDosFiltrosDaLista(f: FiltrosDaLista): string {
   const p = new URLSearchParams();
   if (f.owner) p.set("owner", f.owner);
   if (f.status) p.set("status", f.status);
+  if (f.stage) p.set("etapa", f.stage);
   return p.toString();
 }
 
@@ -99,7 +106,7 @@ const uuid = z.string().uuid();
  */
 export function lerFiltrosDaLista(
   sp: URLSearchParams,
-): { ok: true; filtros: FiltrosDaLista } | { ok: false; campo: "owner" | "status" } {
+): { ok: true; filtros: FiltrosDaLista } | { ok: false; campo: "owner" | "status" | "etapa" } {
   const filtros: FiltrosDaLista = {};
 
   const owner = sp.get("owner")?.trim();
@@ -120,6 +127,13 @@ export function lerFiltrosDaLista(
       return { ok: false, campo: "status" };
     }
     filtros.status = status;
+  }
+
+  // Mergulho: a etapa vem como uuid; qualquer outra coisa é erro, nunca "todas".
+  const etapa = sp.get("etapa")?.trim();
+  if (etapa) {
+    if (!uuid.safeParse(etapa).success) return { ok: false, campo: "etapa" };
+    filtros.stage = etapa;
   }
 
   return { ok: true, filtros };

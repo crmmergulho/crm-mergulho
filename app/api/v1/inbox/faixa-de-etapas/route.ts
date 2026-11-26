@@ -43,7 +43,7 @@ import {
   type PassoDaFaixa,
   type RegraParaAFaixa,
 } from "@/lib/inbox/faixa-de-etapas";
-import { ETAPA_DE_PERDA_NA_FAIXA_DA_ATENDENTE } from "@/lib/inbox/abas-da-mergulho";
+import { ETAPAS_DE_FIM_NA_FAIXA_DA_ATENDENTE } from "@/lib/inbox/abas-da-mergulho";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -192,12 +192,12 @@ export async function GET(req: NextRequest): Promise<Response> {
     }),
   );
 
-  // Mergulho (25/11/2026): a etapa de perda não aparece para a Atendente
-  // (`lib/inbox/abas-da-mergulho.ts`). Só esconde o botão: não é permissão.
-  const verPerdidas = ETAPA_DE_PERDA_NA_FAIXA_DA_ATENDENTE || roleAtLeast(activeOrg.role, "manager");
+  // Mergulho: as etapas de fim (Perdido, Matriculado) não aparecem para a
+  // Atendente (`lib/inbox/abas-da-mergulho.ts`). Só esconde o botão: não é permissão.
+  const verFim = ETAPAS_DE_FIM_NA_FAIXA_DA_ATENDENTE || roleAtLeast(activeOrg.role, "manager");
   const resposta: FaixaDeEtapas = {
     funil: { id: funil.id, nome: funil.name },
-    etapas: etapasDaFaixaParaOPapel(linhas, verPerdidas),
+    etapas: etapasDaFaixaParaOPapel(linhas, verFim),
   };
   return ok(resposta, { requestId });
 }

@@ -926,19 +926,7 @@ export function InboxLayout({
       altura inteira — exatamente como antes.
     */}
     <div className="flex h-[calc(100dvh-var(--faixas-de-cima,0px)-3.5rem-var(--space-6)-max(var(--space-6),var(--rodape-ocupado,0px)))] w-full flex-col">
-    <FaixaDeEtapas
-      orgId={orgId}
-      filtro={filterValue.tag}
-      onEscolher={(etiquetas) =>
-        setFilterValue({
-          ...filterValue,
-          // Uma etiqueta vai como string (o caminho de sempre); várias, em "ou":
-          // o botão da etapa com passos mostra quem está em QUALQUER passo.
-          tag: etiquetas === null ? undefined : etiquetas.length === 1 ? etiquetas[0] : etiquetas,
-          tagMode: etiquetas !== null && etiquetas.length > 1 ? "ou" : undefined,
-        })
-      }
-    />
+    <FaixaDeEtapas orgId={orgId} />
     <div
       ref={gradeRef}
       className={cn(

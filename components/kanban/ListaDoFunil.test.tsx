@@ -99,3 +99,22 @@ describe("a Lista e a barra de filtros", () => {
     expect(screen.getByText("Nenhum negócio com este filtro.")).toBeTruthy();
   });
 });
+
+describe("Mergulho 26/11 — a Lista de UMA etapa (clique na faixa do Inbox)", () => {
+  it("pede só a etapa, diz qual é, e oferece voltar para todas", async () => {
+    const limpar = vi.fn();
+    render(
+      <ListaDoFunil pipelineId="p-1" pipeline={FUNIL} stages={ETAPAS} filtros={{}} etapaId="e-1" onLimparEtapa={limpar} />,
+    );
+    expect(useLeadsPaginados).toHaveBeenLastCalledWith("p-1", 1, { stage: "e-1" });
+    expect(screen.getByTestId("lista-so-da-etapa")).toHaveTextContent("Prospecção");
+    await userEvent.click(screen.getByRole("button", { name: "Ver todas as etapas" }));
+    expect(limpar).toHaveBeenCalledTimes(1);
+  });
+
+  it("sem etapa, nada muda", () => {
+    montar({});
+    expect(useLeadsPaginados).toHaveBeenLastCalledWith("p-1", 1, {});
+    expect(screen.queryByTestId("lista-so-da-etapa")).not.toBeInTheDocument();
+  });
+});
