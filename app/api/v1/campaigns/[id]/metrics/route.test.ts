@@ -176,7 +176,10 @@ describe("métricas da campanha acima de max_rows", () => {
     });
     expect((await chamar()).status).toBe(403);
     expect(createClient).not.toHaveBeenCalled();
-    expect(requireRole).toHaveBeenCalledWith("manager", {
+    // Mergulho (26/11/2026): o portão das campanhas (`lib/campanhas/quem-usa-campanhas.ts`)
+    // começa pelo piso de Atendente; Gerente segue sendo o padrão de quem não
+    // liberou, e isso é medido em `lib/campanhas/quem-usa-campanhas.test.ts`.
+    expect(requireRole).toHaveBeenCalledWith("agent", {
       requestId: expect.any(String),
       resource: "campaigns",
     });

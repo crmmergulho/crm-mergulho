@@ -21,7 +21,7 @@ import type { NextRequest } from "next/server";
 import { fail, ok } from "@/lib/api/wrappers";
 import { audit } from "@/lib/audit";
 import type { AuditAction } from "@/lib/audit/actions";
-import { requireRole } from "@/lib/auth/require-role";
+import { exigirPapelDeCampanhas } from "@/lib/campanhas/quem-usa-campanhas";
 import {
   agendarAcao,
   cancelarAcao,
@@ -66,7 +66,7 @@ export async function POST(
   if (negado) return negado;
 
   const requestId = randomUUID();
-  const authz = await requireRole("manager", { requestId, resource: "campaigns" });
+  const authz = await exigirPapelDeCampanhas({ requestId });
   if (!authz.ok) return authz.response;
   const t = (texto: string) => traduzir(texto, authz.user.idioma);
   const { id, acao } = await ctx.params;

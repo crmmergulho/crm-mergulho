@@ -12,7 +12,7 @@ import { randomUUID } from "node:crypto";
 import type { NextRequest } from "next/server";
 
 import { fail, ok } from "@/lib/api/wrappers";
-import { requireRole } from "@/lib/auth/require-role";
+import { exigirPapelDeCampanhas } from "@/lib/campanhas/quem-usa-campanhas";
 import { requireSupportWrite } from "@/lib/impersonate/support";
 import { conferirModeloDaCampanha } from "@/lib/campanhas/modelo-da-conexao";
 import { preverAudiencia, type ModeloPreparado } from "@/lib/campanhas/preparacao";
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (negado) return negado;
 
   const requestId = randomUUID();
-  const authz = await requireRole("manager", { requestId, resource: "campaigns" });
+  const authz = await exigirPapelDeCampanhas({ requestId });
   if (!authz.ok) return authz.response;
   const t = (texto: string) => traduzir(texto, authz.user.idioma);
 

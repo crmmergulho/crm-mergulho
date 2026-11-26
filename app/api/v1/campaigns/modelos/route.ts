@@ -22,7 +22,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 
 import { fail, ok } from "@/lib/api/wrappers";
-import { requireRole } from "@/lib/auth/require-role";
+import { exigirPapelDeCampanhas } from "@/lib/campanhas/quem-usa-campanhas";
 import { slotKey } from "@/lib/channels/meta/build-components";
 import { isStatusSendable } from "@/lib/channels/meta/template-binding";
 import { lerModoDoCanal } from "@/lib/campanhas/conteudo-do-canal";
@@ -37,7 +37,7 @@ const querySchema = z.object({ channel_session_id: z.string().uuid() });
 
 export async function GET(req: NextRequest): Promise<Response> {
   const requestId = randomUUID();
-  const authz = await requireRole("manager", { requestId, resource: "campaigns" });
+  const authz = await exigirPapelDeCampanhas({ requestId });
   if (!authz.ok) return authz.response;
   const t = (texto: string) => traduzir(texto, authz.user.idioma);
 

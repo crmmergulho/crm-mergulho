@@ -15,7 +15,7 @@ import type { NextRequest } from "next/server";
 
 import { fail, ok } from "@/lib/api/wrappers";
 import { audit } from "@/lib/audit";
-import { requireRole } from "@/lib/auth/require-role";
+import { exigirPapelDeCampanhas } from "@/lib/campanhas/quem-usa-campanhas";
 import { FILTRO_VAZIO } from "@/lib/campanhas/audiencia";
 import {
   camposDeGravacao,
@@ -45,7 +45,7 @@ const COLUNAS_DA_LISTA =
 
 export async function GET(req: NextRequest): Promise<Response> {
   const requestId = randomUUID();
-  const authz = await requireRole("manager", { requestId, resource: "campaigns" });
+  const authz = await exigirPapelDeCampanhas({ requestId });
   if (!authz.ok) return authz.response;
   const t = (texto: string) => traduzir(texto, authz.user.idioma);
 
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (negado) return negado;
 
   const requestId = randomUUID();
-  const authz = await requireRole("manager", { requestId, resource: "campaigns" });
+  const authz = await exigirPapelDeCampanhas({ requestId });
   if (!authz.ok) return authz.response;
   const t = (texto: string) => traduzir(texto, authz.user.idioma);
   const { user, org } = authz;
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   // papel `authenticated` apenas SELECT (a tela lê; só o servidor escreve), e o
   // PostgREST com o JWT do usuário recebe "permission denied for table
   // campaigns" — medido na VPS em 19/09/2026, pela tela. O isolamento não se
-  // perde: `org.orgId` vem do `requireRole()` acima, nunca do corpo, e entra
+  // perde: `org.orgId` vem do portão `exigirPapelDeCampanhas()` acima, nunca do corpo, e entra
   // explicitamente em toda consulta abaixo.
   const supabase = createAdminClient();
   // A conexão é conferida CONTRA A ORGANIZAÇÃO: a FK composta da 0375 recusaria

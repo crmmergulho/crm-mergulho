@@ -5,8 +5,13 @@
  *
  * Fica junto das campanhas e não em `hooks/pipelines/` porque lá não há leitura:
  * o Kanban carrega funis pelo Server Component, de propósito (a tela é aberta a
- * qualquer papel e a rota exige `manager`). A campanha é manager+ por inteiro,
- * então pode ler pela API sem esse cuidado.
+ * qualquer papel e a rota de funis exige `manager`).
+ *
+ * Mergulho (26/11/2026): as três listas vêm de UMA leitura, `/api/v1/campaigns/destinos`,
+ * que passa pelo mesmo portão das campanhas. Antes cada uma ia à rota geral
+ * (`/api/v1/pipelines`, `/stages`, `/api/v1/ai/agents`), que exige Gerente — e a
+ * Atendente liberada para campanhas via o formulário sem funil. A forma que cada
+ * hook devolve não mudou: quem consome segue lendo `data` como antes.
  */
 import { useQuery } from "@tanstack/react-query";
 
@@ -34,35 +39,44 @@ export interface AgenteDisponivel {
   archived_at?: string | null;
 }
 
+interface DestinosDaCampanha {
+  funis: Array<FunilDaCampanha & { etapas: EtapaDoFunil[] }>;
+  agentes: AgenteDisponivel[];
+}
+
+const CHAVE = ["campanhas-destinos"] as const;
+
+async function lerDestinos(): Promise<DestinosDaCampanha> {
+  return (await apiClient.get<{ data: DestinosDaCampanha }>("/api/v1/campaigns/destinos")).data;
+}
+
 export function useFunis() {
   return useQuery({
-    queryKey: ["campanhas-funis"],
-    queryFn: async () => (await apiClient.get<{ data: FunilDaCampanha[] }>("/api/v1/pipelines")).data,
+    queryKey: CHAVE,
+    queryFn: lerDestinos,
     staleTime: 60_000,
+    select: (d): FunilDaCampanha[] => d.funis.map(({ etapas: _etapas, ...funil }) => funil),
   });
 }
 
 export function useEtapas(pipelineId: string | null) {
   return useQuery({
-    queryKey: ["campanhas-etapas", pipelineId],
-    queryFn: async () =>
-      (await apiClient.get<{ data: EtapaDoFunil[] }>(`/api/v1/pipelines/${pipelineId}/stages`)).data,
-    // Sem funil escolhido não há etapa possível — e pedir `/pipelines/null/stages`
-    // seria um 404 por construção.
+    queryKey: CHAVE,
+    queryFn: lerDestinos,
+    // Sem funil escolhido não há etapa possível.
     enabled: !!pipelineId,
     staleTime: 60_000,
+    select: (d): EtapaDoFunil[] => d.funis.find((f) => f.id === pipelineId)?.etapas ?? [],
   });
 }
 
 export function useAgentesPublicados() {
   return useQuery({
-    queryKey: ["campanhas-agentes"],
-    queryFn: async () => {
-      const r = await apiClient.get<{ data: AgenteDisponivel[] }>("/api/v1/ai/agents");
-      // Só agente PUBLICADO pode atender: um rascunho escolhido aqui viraria
-      // silêncio na conversa, e o operador não teria como saber por quê.
-      return (r.data ?? []).filter((a) => !!a.published_version_id && !a.archived_at);
-    },
+    queryKey: CHAVE,
+    queryFn: lerDestinos,
     staleTime: 60_000,
+    // Só agente PUBLICADO pode atender: um rascunho escolhido aqui viraria
+    // silêncio na conversa, e o operador não teria como saber por quê.
+    select: (d): AgenteDisponivel[] => d.agentes.filter((a) => !!a.published_version_id && !a.archived_at),
   });
 }
