@@ -1349,8 +1349,6 @@ export const DICIONARIO: Traducoes = {
   "Número: cards na etapa · Vermelho: conversas não lidas · Clique para ver os leads": { es: "Número: tarjetas en la etapa · Rojo: conversaciones no leídas · Haz clic para ver los leads" },
   "Ver os leads desta etapa": { es: "Ver los leads de esta etapa" },
   "Sem conversa": { es: "Sin conversación" },
-  "Fechada": { es: "Cerrada" },
-  "Com": { es: "Con" },
   "Na Fila": { es: "En la Cola" },
   "lead": { es: "lead" },
   "Não consegui carregar os leads desta etapa.": { es: "No pude cargar los leads de esta etapa." },
