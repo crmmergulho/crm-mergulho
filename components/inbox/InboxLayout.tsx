@@ -25,6 +25,7 @@ import { useConversation, isNotFound } from "@/hooks/inbox/useConversation";
 import { useParticipantesDaConversa } from "@/hooks/inbox/useParticipantesDaConversa";
 import { useParticipacoesRealtime } from "@/hooks/inbox/useParticipacoesRealtime";
 import { ConversationList } from "./ConversationList";
+import { ListaDaEtapa } from "./ListaDaEtapa";
 import { BarraDeAcoesEmLote } from "./BarraDeAcoesEmLote";
 import { InboxFilters, type InboxFiltersValue, type InboxTab } from "./InboxFilters";
 import { ABA_AUTOMATICO_VISIVEL, ABAS_ESCONDIDAS_DA_ATENDENTE } from "@/lib/inbox/abas-da-mergulho";
@@ -32,7 +33,7 @@ import { ChatThread } from "./ChatThread";
 import { Composer, type ComposerHandle } from "./Composer";
 import { ConversationHeader } from "./ConversationHeader";
 import { BotaoIniciarConversa } from "./PainelIniciarConversa";
-import { FaixaDeEtapas } from "./FaixaDeEtapas";
+import { FaixaDeEtapas, type EtapaEscolhida } from "./FaixaDeEtapas";
 import { RetentionNotice } from "./RetentionNotice";
 import { CRMSidePanel } from "./CRMSidePanel";
 import type { ModuloDaLateral } from "@/lib/inbox/modulos-da-lateral";
@@ -386,6 +387,12 @@ export function InboxLayout({
   }, [tab, setFilterValue]);
 
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? idNaUrl);
+  // A ETAPA DA FAIXA (Mergulho, 27/11/2026): com uma escolhida, a coluna da
+  // esquerda mostra os leads dela (`ListaDaEtapa`) no lugar da lista de
+  // conversas. Guarda a organização junto: trocar de empresa volta para a lista
+  // de sempre sem efeito nenhum, porque a etapa da outra empresa não vale aqui.
+  const [etapaDaFaixa, setEtapaDaFaixa] = useState<(EtapaEscolhida & { orgId: string | null }) | null>(null);
+  const etapaAtiva = etapaDaFaixa && etapaDaFaixa.orgId === orgId ? etapaDaFaixa : null;
   const ultimoIdNaUrl = useRef(idNaUrl);
   const [visibleIds, setVisibleIds] = useState<string[]>([]);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -926,7 +933,11 @@ export function InboxLayout({
       altura inteira — exatamente como antes.
     */}
     <div className="flex h-[calc(100dvh-var(--faixas-de-cima,0px)-3.5rem-var(--space-6)-max(var(--space-6),var(--rodape-ocupado,0px)))] w-full flex-col">
-    <FaixaDeEtapas orgId={orgId} />
+    <FaixaDeEtapas
+      orgId={orgId}
+      etapaEscolhida={etapaAtiva?.id ?? null}
+      onEscolher={(etapa) => setEtapaDaFaixa(etapa ? { ...etapa, orgId } : null)}
+    />
     <div
       ref={gradeRef}
       className={cn(
@@ -986,10 +997,14 @@ export function InboxLayout({
         <BotaoIniciarConversa />
         <InboxFilters
           value={filterValue}
-          onChange={setFilterValue}
+          onChange={(v) => {
+            // Mexer na aba ou nos filtros é voltar para a lista de conversas.
+            setEtapaDaFaixa(null);
+            setFilterValue(v);
+          }}
           filas={filasDaOrganizacao?.data ?? []}
         />
-        {podeAgirEmLote && (
+        {podeAgirEmLote && !etapaAtiva && (
           <BarraDeAcoesEmLote
             quantidade={selecao.quantidade}
             pendente={lote.isPending}
@@ -1003,6 +1018,14 @@ export function InboxLayout({
           />
         )}
         <div className="min-h-0 flex-1 overflow-hidden">
+          {etapaAtiva ? (
+            <ListaDaEtapa
+              etapa={etapaAtiva}
+              selectedId={selectedId}
+              onSelect={handleSelect}
+              onFechar={() => setEtapaDaFaixa(null)}
+            />
+          ) : (
           <ConversationList
             listQuery={listQ}
             filters={filters}
@@ -1022,6 +1045,7 @@ export function InboxLayout({
             }
             podeMarcarExemplo={podeMarcarExemplo}
           />
+          )}
         </div>
       </div>
 
